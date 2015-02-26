@@ -1,0 +1,5 @@
+*.rb:
+ruby -e "puts 'hello ruby outer'"
+
+*.c:
+gcc bla.c -o blub
