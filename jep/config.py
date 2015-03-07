@@ -3,6 +3,10 @@ import re
 from os.path import splitext, abspath, exists, dirname, join, basename
 
 
+def find_service_config(filename):
+    return ServiceConfigProvider.provide_service_config(filename)
+
+
 class ServiceConfig:
     """Represents configuration of a single JEP service."""
 
@@ -14,6 +18,9 @@ class ServiceConfig:
 
 class ServiceConfigProvider:
     """Loads JEP configuration files and provides a matching service configuration."""
+
+    REPAT_SERVICE_SPEC = re.compile(r'^(?P<patterns>[^:]+)\s*:\s*^(?P<command>.*)$\s*', re.MULTILINE)
+    REPAT_FILE_PATTERN = re.compile(r'[^,\s]+')
 
     @classmethod
     def provide_service_config(cls, edited_file_name, config_file_name='.jep'):
@@ -50,11 +57,7 @@ class ServiceConfigProvider:
             # to ease parsing read whole file at once, assuming it won't consume huge amounts of memory:
             content = config_file.read()
 
-        for m in re.finditer(r'^(?P<patterns>[^:]+)\s*:\s*^(?P<command>.*)$\s*', content, re.MULTILINE):
-            patterns = re.findall(r'[^,\s]+', m.group('patterns'))
+        for m in cls.REPAT_SERVICE_SPEC.finditer(content):
+            patterns = cls.REPAT_FILE_PATTERN.findall(m.group('patterns'))
             if patterns:
                 yield ServiceConfig(config_file_path, patterns, m.group('command'))
-
-
-def find_service_config(filename):
-    return ServiceConfigProvider.provide_service_config(filename)
