@@ -24,6 +24,9 @@ def test_find_service_config():
     assert sc.command == 'c-command'
     assert os.path.exists(sc.file)
 
+    sc = find_service_config('other-folder/fullname')
+    assert sc.command == 'fullname-command'
+
 
 def test_find_service_config_failed_extension():
     sc = find_service_config('test/test.unknown')
