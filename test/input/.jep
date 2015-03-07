@@ -1,4 +1,4 @@
-*.rb:
+*.rb, *.ruby,*.ruby2:
 ruby-command
 
 *.c:

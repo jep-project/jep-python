@@ -12,6 +12,14 @@ def test_find_service_config():
     assert sc.command == 'ruby-command'
     assert os.path.exists(sc.file)
 
+    sc = find_service_config('test/test.ruby')
+    assert sc.command == 'ruby-command'
+    assert os.path.exists(sc.file)
+
+    sc = find_service_config('test/test.ruby2')
+    assert sc.command == 'ruby-command'
+    assert os.path.exists(sc.file)
+
     sc = find_service_config('other-folder/test.c')
     assert sc.command == 'c-command'
     assert os.path.exists(sc.file)

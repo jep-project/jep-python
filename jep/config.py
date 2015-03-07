@@ -1,20 +1,26 @@
 import re
-from os.path import split, splitext, abspath, exists
+from os.path import split, splitext, abspath, exists, dirname, join, basename
 
 
-def find_service_config(file):
-    last_dir = None
-    dir = abspath(_dirname(file))
-    search_pattern = _file_pattern(file)
-    while dir != last_dir:
-        config_file = dir + '/.jep'
+CONFIG_FILE_NAME = '.jep'
+
+
+def find_service_config(filename):
+    lastdir = None
+    curdir = abspath(dirname(filename))
+    search_pattern = _file_pattern(filename)
+
+    while curdir != lastdir:
+        config_file = join(curdir, CONFIG_FILE_NAME)
         if exists(config_file):
             configs = _parse_config_file(config_file)
             for config in configs:
                 if search_pattern in config.patterns:
                     return config
-        last_dir = dir
-        dir = _dirname(dir)
+        lastdir = curdir
+        curdir = dirname(curdir)
+
+    # not found:
     return None
 
 
@@ -27,10 +33,10 @@ class ServiceConfig(object):
 
 def _file_pattern(file):
     base, ext = splitext(file)
-    if len(ext) > 0:
-        return '*' + ext
+    if ext:
+        return '*%s' % ext
     else:
-        return split(file)[1]
+        return basename(file)
 
 
 def _parse_config_file(file):
@@ -62,8 +68,4 @@ def _shift(lst):
     else:
         return None
 
-
-# returns input if input is file system root
-def _dirname(file):
-    return split(file)[0]
 
