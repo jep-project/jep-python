@@ -10,19 +10,19 @@ def setup_function(function):
 def test_find_service_config():
     sc = find_service_config('test/test.rb')
     assert sc.command == 'ruby-command'
-    assert os.path.exists(sc.file)
+    assert os.path.exists(sc.config_file_path)
 
     sc = find_service_config('test/test.ruby')
     assert sc.command == 'ruby-command'
-    assert os.path.exists(sc.file)
+    assert os.path.exists(sc.config_file_path)
 
     sc = find_service_config('test/test.ruby2')
     assert sc.command == 'ruby-command'
-    assert os.path.exists(sc.file)
+    assert os.path.exists(sc.config_file_path)
 
     sc = find_service_config('other-folder/test.c')
     assert sc.command == 'c-command'
-    assert os.path.exists(sc.file)
+    assert os.path.exists(sc.config_file_path)
 
     sc = find_service_config('other-folder/fullname')
     assert sc.command == 'fullname-command'
