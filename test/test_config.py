@@ -1,5 +1,5 @@
 import os
-from jep.config import find_service_config
+from jep.config import ServiceConfigProvider
 
 
 def setup_function(function):
@@ -7,40 +7,44 @@ def setup_function(function):
     os.chdir(os.path.join(os.path.dirname(__file__), 'input'))
 
 
-def test_find_service_config():
-    sc = find_service_config('test/test.rb')
+def test_service_config_provider():
+    provider = ServiceConfigProvider()
+    sc = provider.provide_for('test/test.rb')
     assert sc.command == 'ruby-command'
     assert os.path.exists(sc.config_file_path)
 
-    sc = find_service_config('test/test.ruby')
+    sc = provider.provide_for('test/test.ruby')
     assert sc.command == 'ruby-command'
     assert os.path.exists(sc.config_file_path)
 
-    sc = find_service_config('test/test.ruby2')
+    sc = provider.provide_for('test/test.ruby2')
     assert sc.command == 'ruby-command'
     assert os.path.exists(sc.config_file_path)
 
-    sc = find_service_config('other-folder/test.c')
+    sc = provider.provide_for('other-folder/test.c')
     assert sc.command == 'c-command'
     assert os.path.exists(sc.config_file_path)
 
-    sc = find_service_config('other-folder/fullname')
+    sc = provider.provide_for('other-folder/fullname')
     assert sc.command == 'fullname-command'
 
 
-def test_find_service_config_failed_extension():
-    sc = find_service_config('test/test.unknown')
+def test_service_config_provider_failed_extension():
+    provider = ServiceConfigProvider()
+    sc = provider.provide_for('test/test.unknown')
     assert sc is None
 
 
-def test_find_service_config_failed_config_file():
+def test_service_config_provider_failed_config_file():
     os.chdir('..')
-    sc = find_service_config('test/test.rb')
+    provider = ServiceConfigProvider()
+    sc = provider.provide_for('test/test.rb')
     assert sc is None
 
 
-def test_find_service_config_from_subfolders():
+def test_service_config_provider_from_subfolders():
     os.chdir('sub1')
-    assert find_service_config('test/test.rb')
+    provider = ServiceConfigProvider()
+    assert provider.provide_for('test/test.rb')
     os.chdir('sub2')
-    assert find_service_config('test/test.rb')
+    assert provider.provide_for('test/test.rb')

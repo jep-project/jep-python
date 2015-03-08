@@ -3,10 +3,6 @@ import re
 from os.path import splitext, abspath, exists, dirname, join, basename
 
 
-def find_service_config(filename):
-    return ServiceConfigProvider.provide_service_config(filename)
-
-
 class ServiceConfig:
     """Represents configuration of a single JEP service."""
 
@@ -23,7 +19,8 @@ class ServiceConfigProvider:
     REPAT_FILE_PATTERN = re.compile(r'[^,\s]+')
 
     @classmethod
-    def provide_service_config(cls, edited_file_name, config_file_name='.jep'):
+    def provide_for(cls, edited_file_name, config_file_name='.jep'):
+        """Returns service configuration for given file name that is going to be edited."""
         lastdir = None
         curdir = dirname(abspath(edited_file_name))
         search_pattern = cls._file_pattern(edited_file_name)
