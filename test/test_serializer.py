@@ -38,6 +38,9 @@ def test_serializable_meta():
     assert a.serialized_attribs[3].itemtype is mock.sentinel.VALUE_TYPE
     assert a.serialized_attribs[3].default is None
 
+    # make sure inherited member is still not in serialized list:
+    assert 'serialized_attribs' not in a.__dict__
+
 
 def test_serialize_to_builtins_builtins():
     assert serialize_to_builtins(5) is 5
