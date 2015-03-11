@@ -1,10 +1,10 @@
 import inspect
 from unittest import mock
-from jep.serializer import SerializableMeta, serialize_to_builtins, deserialize_from_builtins
+from jep.serializer import Serializable, serialize_to_builtins, deserialize_from_builtins
 
 
 def test_serializable_meta():
-    class A(metaclass=SerializableMeta):
+    class A(Serializable):
         def __init__(self,
                      a: int,
                      b: str=mock.sentinel.STR_VALUE,
@@ -47,7 +47,7 @@ def test_serialize_to_builtins_builtins():
 
 
 def test_serialize_to_builtins_class():
-    class A(metaclass=SerializableMeta):
+    class A(Serializable):
         def __init__(self, a: int, b: str):
             self.a = a
             self.b = b
@@ -60,12 +60,12 @@ def test_serialize_to_builtins_class():
 
 
 def test_serialize_to_builtins_class_of_class():
-    class A(metaclass=SerializableMeta):
+    class A(Serializable):
         def __init__(self, a: int, b: str):
             self.a = a
             self.b = b
 
-    class B(metaclass=SerializableMeta):
+    class B(Serializable):
         def __init__(self, a: A):
             self.a = a
 
@@ -81,7 +81,7 @@ def test_deserialize_from_builtins_builtins():
 
 
 def test_deserialize_from_builtins_class():
-    class A(metaclass=SerializableMeta):
+    class A(Serializable):
         def __init__(self, a: int, b: str):
             self.a = a
             self.b = b
@@ -99,7 +99,7 @@ def test_deserialize_from_builtins_class():
 
 
 def test_deserialize_from_builtins_class_of_class():
-    class A(metaclass=SerializableMeta):
+    class A(Serializable):
         def __init__(self, a: int, b: str):
             self.a = a
             self.b = b
@@ -107,7 +107,7 @@ def test_deserialize_from_builtins_class_of_class():
         def __eq__(self, other):
             return self.a == other.a and self.b == other.b
 
-    class B(metaclass=SerializableMeta):
+    class B(Serializable):
         def __init__(self, a_list: [A], a_dict: {int: A}):
             self.a_list = a_list
             self.a_dict = a_dict
@@ -122,7 +122,7 @@ def test_deserialize_from_builtins_class_of_class():
 
 
 def test_deserialize_from_buitlins_default_value():
-    class A(metaclass=SerializableMeta):
+    class A(Serializable):
         def __init__(self, a: int=42, b: str='forty-two'):
             self.a = a
             self.b = b

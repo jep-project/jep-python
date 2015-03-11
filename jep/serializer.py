@@ -1,5 +1,21 @@
-"""Reflective serialization of messages."""
+"""Reflective serialization of messages based on mapping classes to built-in types."""
 import inspect
+
+
+class SerializableMeta(type):
+    """Metaclass remembering the types and default values passed to class constructors."""
+
+    def __init__(cls, name, bases, namespace):
+        super().__init__(name, bases, namespace)
+        ctor = inspect.signature(cls.__init__)
+        cls.serialized_attribs = [SerializedAttribute(p.name, p.annotation, p.default) for p in ctor.parameters.values() if p.name is not 'self']
+
+
+class Serializable(metaclass=SerializableMeta):
+    """Base class for classes to be serialized to and from built-in types."""
+
+    #: List of attributes to be processed during serialization.
+    serialized_attribs = None
 
 
 class SerializedAttribute:
@@ -24,16 +40,6 @@ class SerializedAttribute:
         else:
             self.datatype = annotation
             self.itemtype = None
-
-
-class SerializableMeta(type):
-    """Metaclass remembering the types and default values passed to class constructors."""
-
-    def __new__(mcs, name, bases, namespace):
-        cls = super().__new__(mcs, name, bases, namespace)
-        ctor = inspect.signature(cls.__init__)
-        cls.serialized_attribs = [SerializedAttribute(p.name, p.annotation, p.default) for p in ctor.parameters.values() if p.name is not 'self']
-        return cls
 
 
 def serialize_to_builtins(o):
