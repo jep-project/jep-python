@@ -29,11 +29,13 @@ def test_serializable_meta():
     assert a.serialized_attribs[1].default is mock.sentinel.STR_VALUE
 
     assert a.serialized_attribs[2].name == 'c'
-    assert a.serialized_attribs[2].datatype is mock.sentinel.LIST_TYPE
+    assert a.serialized_attribs[2].datatype is list
+    assert a.serialized_attribs[2].itemtype is mock.sentinel.LIST_TYPE
     assert a.serialized_attribs[2].default is None
 
     assert a.serialized_attribs[3].name == 'd'
-    assert a.serialized_attribs[3].datatype is mock.sentinel.VALUE_TYPE
+    assert a.serialized_attribs[3].datatype is dict
+    assert a.serialized_attribs[3].itemtype is mock.sentinel.VALUE_TYPE
     assert a.serialized_attribs[3].default is None
 
 
@@ -74,8 +76,8 @@ def test_serialize_to_builtins_class_of_class():
 def test_deserialize_from_builtins_builtins():
     assert deserialize_from_builtins(5, int) is 5
     assert deserialize_from_builtins('one', str) is 'one'
-    assert deserialize_from_builtins([1, 2, 3], int) == [1, 2, 3]
-    assert deserialize_from_builtins({1: 'one', 2: 'two'}, str) == {1: 'one', 2: 'two'}
+    assert deserialize_from_builtins([1, 2, 3], list, int) == [1, 2, 3]
+    assert deserialize_from_builtins({1: 'one', 2: 'two'}, dict, str) == {1: 'one', 2: 'two'}
 
 
 def test_deserialize_from_builtins_class():
@@ -114,7 +116,21 @@ def test_deserialize_from_builtins_class_of_class():
             return self.a_dict == other.a_dict and self.a_list == other.a_list
 
     assert deserialize_from_builtins({
-        'a_list': [{'a': 1, 'b': 'one'}, {'a': 2, 'b': 'two'}],
-        'a_dict': {1: {'a': 1, 'b': 'one'}, 2: {'a': 2, 'b': 'two'}}
-    }, B) == B([A(1, 'one'), A(2, 'two')], {1: A(1, 'one'), 2: A(2, 'two')})
+                                         'a_list': [{'a': 1, 'b': 'one'}, {'a': 2, 'b': 'two'}],
+                                         'a_dict': {1: {'a': 1, 'b': 'one'}, 2: {'a': 2, 'b': 'two'}}
+                                     }, B) == B([A(1, 'one'), A(2, 'two')], {1: A(1, 'one'), 2: A(2, 'two')})
 
+
+def test_deserialize_from_buitlins_default_value():
+    class A(metaclass=SerializableMeta):
+        def __init__(self, a: int=42, b: str='forty-two'):
+            self.a = a
+            self.b = b
+
+        def __eq__(self, other):
+            return self.a == other.a and self.b == other.b
+
+    a = deserialize_from_builtins({}, A)
+    assert a == A()
+    assert a.a is 42
+    assert a.b == 'forty-two'

@@ -15,12 +15,15 @@ class SerializedAttribute:
         # derive data type from annotation, for collections store item type:
         if isinstance(annotation, list):
             assert len(annotation) == 1, "Type annotation for list must contain a single item type, e.g. [int]."
-            self.datatype = annotation[0]
+            self.datatype = list
+            self.itemtype = annotation[0]
         elif isinstance(annotation, dict):
             assert len(annotation) == 1, "Type annotation for dict must contain a single map to item type, e.g. {int: str}."
-            self.datatype = list(annotation.values())[0]
+            self.datatype = dict
+            self.itemtype = list(annotation.values())[0]
         else:
             self.datatype = annotation
+            self.itemtype = None
 
 
 class SerializableMeta(type):
@@ -48,20 +51,22 @@ def serialize_to_builtins(o):
     return serialized
 
 
-def deserialize_from_builtins(serialized, datatype):
+def deserialize_from_builtins(serialized, datatype, itemtype=None):
     """Instantiation of data type from built-in serialized form."""
 
     if serialized is None:
         instantiated = None
     elif isinstance(datatype, SerializableMeta):
-        ctor_arguments = {attrib.name: deserialize_from_builtins(serialized.get(attrib.name, attrib.default), attrib.datatype)
+        ctor_arguments = {attrib.name: deserialize_from_builtins(serialized.get(attrib.name, attrib.default), attrib.datatype, attrib.itemtype)
                           for attrib in datatype.serialized_attribs}
         instantiated = datatype(**ctor_arguments)
-    elif isinstance(serialized, list):
-        instantiated = [deserialize_from_builtins(item, datatype) for item in serialized]
-    elif isinstance(serialized, dict):
-        instantiated = {key: deserialize_from_builtins(value, datatype) for key, value in serialized.items()}
+    elif datatype is list and itemtype:
+        instantiated = [deserialize_from_builtins(item, itemtype) for item in serialized]
+    elif datatype is dict and itemtype:
+        instantiated = {key: deserialize_from_builtins(value, itemtype) for key, value in serialized.items()}
+    elif not itemtype:
+        instantiated = datatype(serialized)
     else:
-        instantiated = serialized
+        raise TypeError("Cannot deserialize type %s with item type %s." % (datatype, itemtype))
 
     return instantiated
