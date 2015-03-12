@@ -118,10 +118,11 @@ def test_deserialize_from_builtins_class_of_class():
         def __eq__(self, other):
             return self.a_dict == other.a_dict and self.a_list == other.a_list
 
-    assert deserialize_from_builtins({
-                                         'a_list': [{'a': 1, 'b': 'one'}, {'a': 2, 'b': 'two'}],
-                                         'a_dict': {1: {'a': 1, 'b': 'one'}, 2: {'a': 2, 'b': 'two'}}
-                                     }, B) == B([A(1, 'one'), A(2, 'two')], {1: A(1, 'one'), 2: A(2, 'two')})
+    assert deserialize_from_builtins(
+        {
+            'a_list': [{'a': 1, 'b': 'one'}, {'a': 2, 'b': 'two'}],
+            'a_dict': {1: {'a': 1, 'b': 'one'}, 2: {'a': 2, 'b': 'two'}}
+        }, B) == B([A(1, 'one'), A(2, 'two')], {1: A(1, 'one'), 2: A(2, 'two')})
 
 
 def test_deserialize_from_buitlins_default_value():
