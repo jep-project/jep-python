@@ -4,6 +4,5 @@ python:
 install:
   - pip -v install -r requirements.txt
 script:
-  - cd test
-  - py.test
+  - py.test test
 
