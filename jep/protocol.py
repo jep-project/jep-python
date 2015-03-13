@@ -1,3 +1,4 @@
+import umsgpack
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, ProblemUpdate, CompletionResponse
 from jep.serializer import serialize_to_builtins, deserialize_from_builtins
 
@@ -24,9 +25,9 @@ class MessageSerializer:
         assert not class_by_msgname or callable(class_by_msgname)
 
         #: Optional packer/formatter used during deserialize.
-        self.loads = loads
+        self.loads = loads or umsgpack.loads
         #: Optional packer/formatter used during serialize.
-        self.dumps = dumps
+        self.dumps = dumps or umsgpack.dumps
         #: Callable to returning class for name in protocol.
         self.class_by_msgname = class_by_msgname or (lambda name: MessageSerializer.MESSAGE_CLASS_BY_NAME[name])
 
