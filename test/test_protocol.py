@@ -2,7 +2,7 @@ from unittest import mock
 import pytest
 import umsgpack
 from jep.protocol import MessageSerializer
-from jep.schema import Shutdown, BackendAlive, ContentSync
+from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType
 
 
 def test_message_serializer_serialize_chain():
@@ -50,3 +50,34 @@ def test_message_serializer_serialize_content_sync(observable_serializer):
     # TODO assert packed==...
 
 
+def test_message_serializer_serialize_out_of_sync(observable_serializer):
+    packed = observable_serializer.serialize(OutOfSync('thefile'))
+    observable_serializer.dumps.assert_called_once_with(dict(_message='OutOfSync', file='thefile'))
+    # TODO assert packed==...
+
+
+def test_message_serializer_completion_request(observable_serializer):
+    packed = observable_serializer.serialize(CompletionRequest('thetoken', 'thefile', 10, 17))
+    observable_serializer.dumps.assert_called_once_with(dict(_message='CompletionRequest', file='thefile', token='thetoken', pos=10, limit=17))
+    # TODO assert packed==...
+
+
+def test_message_serializer_completion_response(observable_serializer):
+    msg = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', SemanticType.String, 'theExtId'),
+                                                        CompletionOption('display2', 'thedescription2', SemanticType.Identifier, 'theExtId2')])
+
+    packed = observable_serializer.serialize(msg)
+
+    expected = {
+        '_message': 'CompletionResponse',
+        'token': 'thetoken',
+        'start': 11,
+        'end': 12,
+        'limit_exceeded': True,
+        'options': [
+            {'display': 'display', 'desc': 'thedescription', 'semantics': 'String', 'extension_id': 'theExtId'},
+            {'display': 'display2', 'desc': 'thedescription2', 'semantics': 'Identifier', 'extension_id': 'theExtId2'}
+        ]
+    }
+    observable_serializer.dumps.assert_called_once_with(expected)
+    # TODO assert packed==...

@@ -1,3 +1,4 @@
+from enum import Enum
 import inspect
 from unittest import mock
 from jep.serializer import Serializable, serialize_to_builtins, deserialize_from_builtins
@@ -146,3 +147,19 @@ def test_serialize_to_builtins_none():
 
 def test_deserialize_from_builtins_none():
     assert deserialize_from_builtins(None, None) is None
+
+
+def test_serialize_to_builtins_enum():
+    class MyEnum(Enum):
+        Literal1 = 1
+        Literal2 = 2
+
+    assert serialize_to_builtins(MyEnum.Literal1) == 'Literal1'
+
+
+def test_deserialize_from_builtins_enum():
+    class MyEnum(Enum):
+        Literal1 = 1
+        Literal2 = 2
+
+    assert deserialize_from_builtins('Literal2', MyEnum) == MyEnum.Literal2
