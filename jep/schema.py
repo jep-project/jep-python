@@ -1,5 +1,5 @@
 """JEP message types."""
-from enum import Enum
+from enum import Enum, unique
 from jep.serializer import Serializable
 
 
@@ -13,23 +13,26 @@ class Shutdown(Serializable):
     pass
 
 
-class BackendAlive:
+class BackendAlive(Serializable):
     pass
 
 
-class ContentSync:
+class ContentSync(Serializable):
     def __init__(self, file: str, data: bytes, start: int=0, end: int=-1):
+        super().__init__()
         self.file = file
         self.start = start
         self.end = end
         self.data = data
 
 
-class OutOfSync:
+class OutOfSync(Serializable):
     def __init__(self, file: str):
+        super().__init__()
         self.file = file
 
 
+@unique
 class Severity(Enum):
     Debug = 1
     Info = 2
@@ -38,15 +41,17 @@ class Severity(Enum):
     Fatal = 5
 
 
-class Problem:
+class Problem(Serializable):
     def __init__(self, message: str, severity: Severity, line: int):
+        super().__init__()
         self.message = message
         self.severity = severity
         self.line = line
 
 
-class FileProblems:
+class FileProblems(Serializable):
     def __init__(self, file: str, problems: [Problem], total: int=None, start: int=0, end: int=None):
+        super().__init__()
         self.file = file
         self.problems = problems
         self.total = total
@@ -54,20 +59,23 @@ class FileProblems:
         self.end = end
 
 
-class ProblemUpdate:
+class ProblemUpdate(Serializable):
     def __init__(self, file_problems: [FileProblems], partial: bool=False):
+        super().__init__()
         self.file_problems = file_problems
         self.partial = partial
 
 
-class CompletionRequest:
+class CompletionRequest(Serializable):
     def __init__(self, token: str, file: str, pos: int, limit: int=None):
+        super().__init__()
         self.token = token
         self.file = file
         self.pos = pos
         self.limit = limit
 
 
+@unique
 class SemanticType(Enum):
     Comment = 1
     Type = 2
@@ -84,16 +92,18 @@ class SemanticType(Enum):
     Special5 = 13
 
 
-class CompletionOption:
+class CompletionOption(Serializable):
     def __init__(self, display: str, desc: str=None, semantics: SemanticType=None, extension_id: str=None):
+        super().__init__()
         self.display = display
         self.desc = desc
         self.semantics = semantics
         self.extension_id = extension_id
 
 
-class CompletionResponse:
+class CompletionResponse(Serializable):
     def __init__(self, token: str, start: int, end: int, limit_exceeded: bool, options: [CompletionOption]=None):
+        super().__init__()
         self.token = token
         self.start = start
         self.end = end

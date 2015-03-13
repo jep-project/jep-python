@@ -2,7 +2,8 @@ from unittest import mock
 import pytest
 import umsgpack
 from jep.protocol import MessageSerializer
-from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType
+from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
+    Severity, FileProblems
 
 
 def test_message_serializer_serialize_chain():
@@ -56,13 +57,24 @@ def test_message_serializer_serialize_out_of_sync(observable_serializer):
     # TODO assert packed==...
 
 
-def test_message_serializer_completion_request(observable_serializer):
+def test_message_serializer_serialize_completion_request(observable_serializer):
     packed = observable_serializer.serialize(CompletionRequest('thetoken', 'thefile', 10, 17))
     observable_serializer.dumps.assert_called_once_with(dict(_message='CompletionRequest', file='thefile', token='thetoken', pos=10, limit=17))
     # TODO assert packed==...
 
 
-def test_message_serializer_completion_response(observable_serializer):
+def test_message_serializer_serialize_problem_update(observable_serializer):
+    msg = ProblemUpdate([FileProblems('thefile', [Problem('themsg', Severity.Info, 99)], 50, 10, 20)], True)
+    packed = observable_serializer.serialize(msg)
+    observable_serializer.dumps.assert_called_once_with(dict(_message='ProblemUpdate', partial=True, file_problems=[
+        dict(file='thefile', total=50, start=10, end=20, problems=[
+            dict(message='themsg', severity='Info', line=99)
+        ])
+    ]))
+    # TODO assert packed==...
+
+
+def test_message_serializer_serialize_completion_response(observable_serializer):
     msg = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', SemanticType.String, 'theExtId'),
                                                         CompletionOption('display2', 'thedescription2', SemanticType.Identifier, 'theExtId2')])
 
@@ -81,3 +93,29 @@ def test_message_serializer_completion_response(observable_serializer):
     }
     observable_serializer.dumps.assert_called_once_with(expected)
     # TODO assert packed==...
+
+
+def test_message_serializer_deserialize_completion_response():
+    # TODO should start with a packed message and use msgpack to unpack, for now start with builtin form:
+    unpacked = {
+        '_message': 'CompletionResponse',
+        'token': 'thetoken',
+        'start': 11,
+        'end': 12,
+        'limit_exceeded': True,
+        'options': [
+            {'display': 'display', 'desc': 'thedescription', 'semantics': 'String', 'extension_id': 'theExtId'},
+            {'display': 'display2', 'desc': 'thedescription2', 'semantics': 'Identifier', 'extension_id': 'theExtId2'}
+        ]
+    }
+
+    # and use serializer without unpacker:
+    serializer = MessageSerializer(dumps=lambda s: s, loads=lambda s: s)
+
+    msg = serializer.deserialize(unpacked)
+
+    expected = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', SemanticType.String, 'theExtId'),
+                                                             CompletionOption('display2', 'thedescription2', SemanticType.Identifier, 'theExtId2')])
+
+    # avoid implementation of eq in schema classes, so rely on correct serialization for now:
+    assert serializer.serialize(msg) == serializer.serialize(expected)
