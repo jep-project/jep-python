@@ -46,12 +46,28 @@ class Serializable(metaclass=SerializableMeta):
         # hide base class init arguments to prevent they are collected:
         super().__init__()
 
+    def is_serialized_and_not_default(self, name):
+        """Checks if attribute with given name has a value different from its optional default."""
+        if not self.serialized_attribs:
+            return False
+
+        # TODO speed up via hash
+        f = [attrib for attrib in self.serialized_attribs if attrib.name == name]
+        if not f:
+            return False
+
+        attrib = f[0]
+
+        return (attrib.default is inspect._empty) or (attrib.default != self.__dict__[name])
+
 
 def serialize_to_builtins(o):
     """Serialization of arbitrary object to built-in data types."""
 
     if isinstance(o, Enum):
         serialized = o.name
+    elif isinstance(o, Serializable):
+        serialized = serialize_to_builtins({key: value for key, value in o.__dict__.items() if o.is_serialized_and_not_default(key)})
     elif hasattr(o, '__dict__'):
         serialized = serialize_to_builtins(o.__dict__)
     elif isinstance(o, list):

@@ -11,7 +11,7 @@ def test_serializable_meta():
                      b: str=mock.sentinel.STR_VALUE,
                      c: [mock.sentinel.LIST_TYPE]=None,
                      d: {mock.sentinel.KEY_TYPE: mock.sentinel.VALUE_TYPE}=None):
-            pass
+            super().__init__()
 
     # make sure injected attribute list is available at class and instance level and it's the same:
     a = A(mock.sentinel.INT_VALUE)
@@ -53,6 +53,7 @@ def test_serialize_to_builtins_builtins():
 def test_serialize_to_builtins_class():
     class A(Serializable):
         def __init__(self, a: int, b: str):
+            super().__init__()
             self.a = a
             self.b = b
 
@@ -66,11 +67,13 @@ def test_serialize_to_builtins_class():
 def test_serialize_to_builtins_class_of_class():
     class A(Serializable):
         def __init__(self, a: int, b: str):
+            super().__init__()
             self.a = a
             self.b = b
 
     class B(Serializable):
         def __init__(self, a: A):
+            super().__init__()
             self.a = a
 
     o = B(A(1, 'one'))
@@ -87,6 +90,7 @@ def test_deserialize_from_builtins_builtins():
 def test_deserialize_from_builtins_class():
     class A(Serializable):
         def __init__(self, a: int, b: str):
+            super().__init__()
             self.a = a
             self.b = b
 
@@ -105,6 +109,7 @@ def test_deserialize_from_builtins_class():
 def test_deserialize_from_builtins_class_of_class():
     class A(Serializable):
         def __init__(self, a: int, b: str):
+            super().__init__()
             self.a = a
             self.b = b
 
@@ -113,6 +118,7 @@ def test_deserialize_from_builtins_class_of_class():
 
     class B(Serializable):
         def __init__(self, a_list: [A], a_dict: {int: A}):
+            super().__init__()
             self.a_list = a_list
             self.a_dict = a_dict
 
@@ -126,9 +132,23 @@ def test_deserialize_from_builtins_class_of_class():
         }, B) == B([A(1, 'one'), A(2, 'two')], {1: A(1, 'one'), 2: A(2, 'two')})
 
 
+def test_serialize_to_builtins_default_values_not_contained():
+    class A(Serializable):
+        def __init__(self, a: int=42, b: str='forty-two'):
+            super().__init__()
+            self.a = a
+            self.b = b
+
+    o = A()
+
+    # no entries in dictionary as only defaults are contained:
+    assert len(serialize_to_builtins(o)) == 0
+
+
 def test_deserialize_from_buitlins_default_value():
     class A(Serializable):
         def __init__(self, a: int=42, b: str='forty-two'):
+            super().__init__()
             self.a = a
             self.b = b
 
