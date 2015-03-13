@@ -41,6 +41,10 @@ class Serializable(metaclass=SerializableMeta):
     #: List of attributes to be processed during serialization.
     serialized_attribs = None
 
+    def __init__(self):
+        # hide base class init arguments to prevent they are collected:
+        super().__init__()
+
 
 def serialize_to_builtins(o):
     """Serialization of arbitrary object to built-in data types."""

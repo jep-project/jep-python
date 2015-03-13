@@ -18,7 +18,7 @@ class BackendAlive:
 
 
 class ContentSync:
-    def __init__(self, file: str, start: int, end: int, data: bytes):
+    def __init__(self, file: str, data: bytes, start: int=0, end: int=-1):
         self.file = file
         self.start = start
         self.end = end
