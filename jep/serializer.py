@@ -33,7 +33,7 @@ class SerializableMeta(type):
     def __init__(cls, name, bases, namespace):
         super().__init__(name, bases, namespace)
         ctor = inspect.signature(cls.__init__)
-        cls.serialized_attribs = [SerializedAttribute(p.name, p.annotation, p.default) for p in ctor.parameters.values() if p.name is not 'self']
+        cls.serialized_attribs = {p.name: SerializedAttribute(p.name, p.annotation, p.default) for p in ctor.parameters.values() if p.name is not 'self'}
 
 
 class Serializable(metaclass=SerializableMeta):
@@ -46,19 +46,14 @@ class Serializable(metaclass=SerializableMeta):
         # hide base class init arguments to prevent they are collected:
         super().__init__()
 
-    def is_serialized_and_not_default(self, name):
+    @classmethod
+    def is_serialized_and_not_default(cls, name, value):
         """Checks if attribute with given name has a value different from its optional default."""
-        if not self.serialized_attribs:
+        if not cls.serialized_attribs:
             return False
 
-        # TODO speed up via hash
-        f = [attrib for attrib in self.serialized_attribs if attrib.name == name]
-        if not f:
-            return False
-
-        attrib = f[0]
-
-        return (attrib.default is inspect._empty) or (attrib.default != self.__dict__[name])
+        attrib = cls.serialized_attribs.get(name, None)
+        return attrib and ((attrib.default is inspect._empty) or (attrib.default != value))
 
 
 def serialize_to_builtins(o):
@@ -67,7 +62,7 @@ def serialize_to_builtins(o):
     if isinstance(o, Enum):
         serialized = o.name
     elif isinstance(o, Serializable):
-        serialized = serialize_to_builtins({key: value for key, value in o.__dict__.items() if o.is_serialized_and_not_default(key)})
+        serialized = serialize_to_builtins({key: value for key, value in o.__dict__.items() if o.is_serialized_and_not_default(key, value)})
     elif hasattr(o, '__dict__'):
         serialized = serialize_to_builtins(o.__dict__)
     elif isinstance(o, list):
@@ -87,7 +82,7 @@ def deserialize_from_builtins(serialized, datatype, itemtype=None):
         instantiated = None
     elif isinstance(datatype, SerializableMeta):
         ctor_arguments = {attrib.name: deserialize_from_builtins(serialized.get(attrib.name, attrib.default), attrib.datatype, attrib.itemtype)
-                          for attrib in datatype.serialized_attribs}
+                          for attrib in datatype.serialized_attribs.values()}
         instantiated = datatype(**ctor_arguments)
     elif datatype is list and itemtype:
         instantiated = [deserialize_from_builtins(item, itemtype) for item in serialized]

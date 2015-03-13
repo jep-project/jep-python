@@ -17,27 +17,28 @@ def test_serializable_meta():
     a = A(mock.sentinel.INT_VALUE)
     assert hasattr(A, 'serialized_attribs')
     assert hasattr(a, 'serialized_attribs')
-    assert isinstance(a.serialized_attribs, list)
+    assert isinstance(a.serialized_attribs, dict)
     assert A.serialized_attribs is a.serialized_attribs
+    assert len(a.serialized_attribs) == 4
 
     # check type handling:
-    assert a.serialized_attribs[0].name == 'a'
-    assert a.serialized_attribs[0].datatype is int
-    assert a.serialized_attribs[0].default is inspect._empty
+    assert a.serialized_attribs['a'].name == 'a'
+    assert a.serialized_attribs['a'].datatype is int
+    assert a.serialized_attribs['a'].default is inspect._empty
 
-    assert a.serialized_attribs[1].name == 'b'
-    assert a.serialized_attribs[1].datatype is str
-    assert a.serialized_attribs[1].default is mock.sentinel.STR_VALUE
+    assert a.serialized_attribs['b'].name == 'b'
+    assert a.serialized_attribs['b'].datatype is str
+    assert a.serialized_attribs['b'].default is mock.sentinel.STR_VALUE
 
-    assert a.serialized_attribs[2].name == 'c'
-    assert a.serialized_attribs[2].datatype is list
-    assert a.serialized_attribs[2].itemtype is mock.sentinel.LIST_TYPE
-    assert a.serialized_attribs[2].default is None
+    assert a.serialized_attribs['c'].name == 'c'
+    assert a.serialized_attribs['c'].datatype is list
+    assert a.serialized_attribs['c'].itemtype is mock.sentinel.LIST_TYPE
+    assert a.serialized_attribs['c'].default is None
 
-    assert a.serialized_attribs[3].name == 'd'
-    assert a.serialized_attribs[3].datatype is dict
-    assert a.serialized_attribs[3].itemtype is mock.sentinel.VALUE_TYPE
-    assert a.serialized_attribs[3].default is None
+    assert a.serialized_attribs['d'].name == 'd'
+    assert a.serialized_attribs['d'].datatype is dict
+    assert a.serialized_attribs['d'].itemtype is mock.sentinel.VALUE_TYPE
+    assert a.serialized_attribs['d'].default is None
 
     # make sure inherited member is still not in serialized list:
     assert 'serialized_attribs' not in a.__dict__
