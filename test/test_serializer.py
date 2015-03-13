@@ -97,8 +97,8 @@ def test_deserialize_from_builtins_class():
     assert deserialize_from_builtins(s, A) == expected
 
     # currently not supported (no explicit attribute information):
-    # assert deserialize_from_builtins([s, s], A) == [expected, expected]
-    # assert deserialize_from_builtins({1: s}, A) == [1, expected]
+    # assert Serializer.deserialize_from_builtins([s, s], A) == [expected, expected]
+    # assert Serializer.deserialize_from_builtins({1: s}, A) == [1, expected]
 
 
 def test_deserialize_from_builtins_class_of_class():
@@ -138,3 +138,11 @@ def test_deserialize_from_buitlins_default_value():
     assert a == A()
     assert a.a is 42
     assert a.b == 'forty-two'
+
+
+def test_serialize_to_builtins_none():
+    assert serialize_to_builtins(None) is None
+
+
+def test_deserialize_from_builtins_none():
+    assert deserialize_from_builtins(None, None) is None
