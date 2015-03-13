@@ -184,3 +184,18 @@ def test_deserialize_from_builtins_enum():
         Literal2 = 2
 
     assert deserialize_from_builtins('Literal2', MyEnum) == MyEnum.Literal2
+
+
+def test_serializable_is_serialized_and_not_default():
+    class A(Serializable):
+        def __init__(self, a: int=42, b: str='forty-two'):
+            super().__init__()
+            self.a = a
+            self.b = b
+
+    o = A()
+    assert not o.is_serialized_and_not_default('c', 42)
+    assert o.is_serialized_and_not_default('a', 5)
+    assert not o.is_serialized_and_not_default('a', 42)
+    assert o.is_serialized_and_not_default('b', 'other value')
+    assert not o.is_serialized_and_not_default('b', 'forty-two')
