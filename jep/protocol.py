@@ -50,3 +50,49 @@ class MessageSerializer:
 
         datatype = self.class_by_msgname(serialized[MessageSerializer.MESSAGE_KEY])
         return deserialize_from_builtins(serialized, datatype)
+
+
+class ProtocolMixin:
+    """Framework independent implementation of JEP protocol, exposing a message oriented interface."""
+
+    def __init__(self, listener=None, serializer=None):
+        #: Listener called for received messages.
+        self.listener = listener
+        self.serializer = serializer or MessageSerializer()
+
+    def send_message(self, message):
+        serialized = self.serializer.serialize(message)
+        self._send_data(serialized)
+
+    @property
+    def connected(self):
+        raise NotImplementedError()
+
+    def _send_data(self, data):
+        """To be implemented specific for used framework."""
+        raise NotImplementedError()
+
+    def _on_data_received(self, data):
+        """Received data is encoded and passed to message listener."""
+        message = self.serializer.deserialize(data)
+        if self.listener:
+            self.listener.on_message_received(message)
+
+    def _on_connection_made(self):
+        if self.listener:
+            self.listener.on_connection_made()
+
+    def _on_connection_lost(self):
+        if self.listener:
+            self.listener.on_connection_lost()
+
+
+class ProtocolListener:
+    def on_message_received(self, message):
+        pass
+
+    def on_connection_made(self):
+        pass
+
+    def on_connection_lost(self):
+        pass

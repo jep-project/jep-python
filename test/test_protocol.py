@@ -1,7 +1,7 @@
 from unittest import mock
 import pytest
 import umsgpack
-from jep.protocol import MessageSerializer
+from jep.protocol import MessageSerializer, ProtocolMixin
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
     Severity, FileProblems
 
@@ -119,3 +119,37 @@ def test_message_serializer_deserialize_completion_response():
 
     # avoid implementation of eq in schema classes, so rely on correct serialization for now:
     assert serializer.serialize(msg) == serializer.serialize(expected)
+
+
+def test_protocol_mixin_on_data_received():
+    mock_serializer = mock.MagicMock()
+    mock_serializer.deserialize = mock.MagicMock(return_value=mock.sentinel.DESERIALIZED)
+    mock_listener = mock.MagicMock()
+
+    p = ProtocolMixin(mock_listener, mock_serializer)
+    p._on_data_received(mock.sentinel.SERIALIZED)
+
+    mock_serializer.deserialize.assert_called_once_with(mock.sentinel.SERIALIZED)
+    mock_listener.on_message_received.assert_called_once_with(mock.sentinel.DESERIALIZED)
+
+
+def test_protocol_mixin_send_message():
+    mock_serializer = mock.MagicMock()
+    mock_serializer.serialize = mock.MagicMock(return_value=mock.sentinel.SERIALIZED)
+
+    with mock.patch('test_protocol.ProtocolMixin._send_data') as mock_send_data:
+        p = ProtocolMixin(serializer=mock_serializer)
+        p.send_message(mock.sentinel.MESSAGE)
+
+        mock_serializer.serialize.assert_called_once_with(mock.sentinel.MESSAGE)
+        mock_send_data.assert_called_once_woth(mock.sentinel.SERIALIZED)
+
+
+def test_protocol_mixin_connection_state():
+    mock_listener = mock.MagicMock()
+    p = ProtocolMixin(listener=mock_listener)
+
+    p._on_connection_made()
+    p._on_connection_lost()
+
+    assert mock_listener.method_calls == [mock.call.on_connection_made(), mock.call.on_connection_lost()]
