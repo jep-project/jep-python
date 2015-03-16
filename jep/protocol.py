@@ -1,5 +1,5 @@
 import logging
-import umsgpack
+import jep.contrib.umsgpack as umsgpack
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, ProblemUpdate, CompletionResponse
 from jep.serializer import serialize_to_builtins, deserialize_from_builtins
 

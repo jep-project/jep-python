@@ -1,6 +1,6 @@
 from unittest import mock
 import pytest
-import umsgpack
+import jep.contrib.umsgpack as umsgpack
 from jep.protocol import MessageSerializer, JepProtocolMixin
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
     Severity, FileProblems
