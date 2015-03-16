@@ -1,6 +1,9 @@
+import logging
 import umsgpack
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, ProblemUpdate, CompletionResponse
 from jep.serializer import serialize_to_builtins, deserialize_from_builtins
+
+_logger = logging.getLogger(__name__)
 
 
 class MessageSerializer:
@@ -52,7 +55,7 @@ class MessageSerializer:
         return deserialize_from_builtins(serialized, datatype)
 
 
-class ProtocolMixin:
+class JepProtocolMixin:
     """Framework independent implementation of JEP protocol, exposing a message oriented interface."""
 
     def __init__(self, listener=None, serializer=None):
@@ -60,7 +63,12 @@ class ProtocolMixin:
         self.listener = listener
         self.serializer = serializer or MessageSerializer()
 
+        # register protocol with listener:
+        if listener:
+            listener.protocol = self
+
     def send_message(self, message):
+        _logger.debug('Protocol sends message: %s.' % message)
         serialized = self.serializer.serialize(message)
         self._send_data(serialized)
 
@@ -75,19 +83,24 @@ class ProtocolMixin:
     def _on_data_received(self, data):
         """Received data is encoded and passed to message listener."""
         message = self.serializer.deserialize(data)
+        _logger.debug('Protocol received message: %s.' % message)
         if self.listener:
             self.listener.on_message_received(message)
 
     def _on_connection_made(self):
+        _logger.debug('Protocol connected.')
         if self.listener:
             self.listener.on_connection_made()
 
     def _on_connection_lost(self):
+        _logger.debug('Protocol disconnected.')
         if self.listener:
             self.listener.on_connection_lost()
 
 
-class ProtocolListener:
+class JepProtocolListener:
+    protocol = None
+
     def on_message_received(self, message):
         pass
 

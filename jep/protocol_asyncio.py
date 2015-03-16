@@ -1,9 +1,9 @@
 """Asyncio specific implementation of JEP protocol."""
 import asyncio
-from jep.protocol import ProtocolMixin
+from jep.protocol import JepProtocolMixin
 
 
-class Protocol(asyncio.Protocol, ProtocolMixin):
+class JepProtocol(asyncio.Protocol, JepProtocolMixin):
     """Asyncio protocol for JEP, connecting asyncio and framework independent mixin."""
 
     transport = None
