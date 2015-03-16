@@ -1,2 +1,1 @@
 pytest
-u-msgpack-python
