@@ -24,6 +24,8 @@ TIMEOUT_SELECT_SEC = 0.5
 #: Number of seconds between backend alive messages. Optimal: PERIOD_BACKEND_ALIVE_SEC = n * TIMEOUT_SELECT_SEC
 PERIOD_BACKEND_ALIVE_SEC = 1
 
+# TODO Connection timeout.
+
 
 class NoPortFoundError(Exception):
     pass
@@ -129,12 +131,9 @@ class Backend():
 
             # call internal handler of service level messages:
             self._on_message_received(msg)
-            return True
-
         else:
             _logger.info('Closing connection to frontend due to empty data reception.')
             self._close(clientsocket)
-            return False
 
     def _close(self, sock):
         sock.close()
