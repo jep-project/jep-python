@@ -17,6 +17,9 @@ LISTEN_QUEUE_LENGTH = 3
 #: Data buffer length in bytes.
 BUFFER_LENGTH = 10000
 
+#: Number of seconds between select timeouts.
+TIMEOUT_SELECT_SEC = 1
+
 #: Number of seconds between backend alive messages.
 PERIOD_BACKEND_ALIVE_SEC = 1
 
@@ -36,10 +39,14 @@ class Backend():
     """Synchronous JEP backend service."""
 
     def __init__(self, listeners=None, serializer=None):
-        self.serversocket = None
+        self.sockets = []
         self.state = State.Stopped
         self.serializer = serializer or MessageSerializer()
         self.listeners = listeners or []
+
+    @property
+    def serversocket(self):
+        return self.sockets[0] if self.sockets else None
 
     def start(self):
         """Starts listening for front-ends to connect."""
@@ -51,8 +58,8 @@ class Backend():
 
     def _listen(self):
         """Set up server socket to listen for incoming connections."""
-        # find available port to listen:
-        self.serversocket = socket.socket()
+        # find available port to listen at:
+        self.sockets = [socket.socket()]
         port = PORT_RANGE[0]
         while self.state is not State.Running and port < PORT_RANGE[1]:
             try:
@@ -70,30 +77,27 @@ class Backend():
     def _run(self):
         """Process connections and messages. This is the main loop of the server."""
 
-        sockets = [self.serversocket]
         while self.state is State.Running:
-            readable, *_ = select.select(sockets, [], sockets, 1)
+            readable, *_ = select.select(self.sockets, [], [], TIMEOUT_SELECT_SEC)
             _logger.debug('Readable sockets: %d' % len(readable))
 
-            for rsocket in readable:
-                if rsocket is self.serversocket:
-                    sockets.append(self._accept())
+            for sock in readable:
+                if sock is self.serversocket:
+                    self._accept()
                 else:
-                    if not self._receive(rsocket):
+                    if not self._receive(sock):
                         _logger.info('Closing connection to frontend.')
-                        rsocket.close()
-                        sockets.remove(rsocket)
+                        self._close(sock)
 
         if self.state == State.ShutdownPending:
-            map(lambda s: s.close(), sockets)
-            self.serversocket = None
+            map(self._close, self.sockets)
             self.state = State.Stopped
 
     def _accept(self):
         """Blocking accept of incoming connection."""
         clientsocket, *_ = self.serversocket.accept()
+        self.sockets.append(clientsocket)
         _logger.info('Frontend connected.')
-        return clientsocket
 
     def _receive(self, clientsocket):
         """Blocking read of client data on given socket. Returns flag whether socket is still healthy."""
@@ -114,6 +118,10 @@ class Backend():
         # else: received no data on a readable socket --> connection closed?
         _logger.warning('Frontend sent empty data.')
         return False
+
+    def _close(self, sock):
+        sock.close()
+        self.sockets.remove(sock)
 
     def _on_message_received(self, msg):
         if isinstance(msg, Shutdown):
