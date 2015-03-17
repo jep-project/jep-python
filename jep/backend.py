@@ -60,10 +60,15 @@ class Backend():
     def start(self):
         """Starts listening for front-ends to connect."""
 
+        assert self.state is State.Stopped
+
         _logger.info('Starting backend.')
         self._listen()
         self._run()
         _logger.info('Backend stopped.')
+
+        assert self.state is State.Stopped
+        assert not self.sockets, 'Unexpected active sockets after shutdown.'
 
     def _listen(self):
         """Set up server socket to listen for incoming connections."""
@@ -94,14 +99,12 @@ class Backend():
                 if sock is self.serversocket:
                     self._accept()
                 else:
-                    if not self._receive(sock):
-                        _logger.info('Closing connection to frontend.')
-                        self._close(sock)
+                    self._receive(sock)
 
             self._cyclic()
 
         if self.state == State.ShutdownPending:
-            for sock in self.sockets:
+            for sock in self.sockets.copy():
                 self._close(sock)
             self.state = State.Stopped
 
@@ -112,7 +115,7 @@ class Backend():
         _logger.info('Frontend connected.')
 
     def _receive(self, clientsocket):
-        """Blocking read of client data on given socket. Returns flag whether socket is still healthy."""
+        """Blocking read of client data on given socket."""
         data = clientsocket.recv(BUFFER_LENGTH)
         if data:
             _logger.debug('Received data: %s' % data)
@@ -128,9 +131,10 @@ class Backend():
             self._on_message_received(msg)
             return True
 
-        # else: received no data on a readable socket --> connection closed?
-        _logger.warning('Frontend sent empty data.')
-        return False
+        else:
+            _logger.info('Closing connection to frontend due to empty data reception.')
+            self._close(clientsocket)
+            return False
 
     def _close(self, sock):
         sock.close()
