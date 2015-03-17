@@ -4,6 +4,7 @@ import logging
 import socket
 import select
 from jep.protocol import JepProtocolListener, MessageSerializer
+from jep.schema import Shutdown
 
 _logger = logging.getLogger(__name__)
 
@@ -32,6 +33,8 @@ class State(enum.Enum):
 
 
 class Backend():
+    """Synchronous JEP backend service."""
+
     def __init__(self, listeners=None, serializer=None):
         self.serversocket = None
         self.state = State.Stopped
@@ -41,9 +44,10 @@ class Backend():
     def start(self):
         """Starts listening for front-ends to connect."""
 
-        _logger.debug('Starting backend.')
+        _logger.info('Starting backend.')
         self._listen()
         self._run()
+        _logger.info('Backend stopped.')
 
     def _listen(self):
         """Set up server socket to listen for incoming connections."""
@@ -68,14 +72,22 @@ class Backend():
 
         sockets = [self.serversocket]
         while self.state is State.Running:
-            readable, *_ = select.select(sockets, [], [], 1)
+            readable, *_ = select.select(sockets, [], sockets, 1)
             _logger.debug('Readable sockets: %d' % len(readable))
 
             for rsocket in readable:
                 if rsocket is self.serversocket:
                     sockets.append(self._accept())
                 else:
-                    self._receive(rsocket)
+                    if not self._receive(rsocket):
+                        _logger.info('Closing connection to frontend.')
+                        rsocket.close()
+                        sockets.remove(rsocket)
+
+        if self.state == State.ShutdownPending:
+            map(lambda s: s.close(), sockets)
+            self.serversocket = None
+            self.state = State.Stopped
 
     def _accept(self):
         """Blocking accept of incoming connection."""
@@ -84,12 +96,26 @@ class Backend():
         return clientsocket
 
     def _receive(self, clientsocket):
-        """Blocking read of client data on given socket."""
+        """Blocking read of client data on given socket. Returns flag whether socket is still healthy."""
         data = clientsocket.recv(BUFFER_LENGTH)
-        _logger.debug('Received data: %s' % data)
-        msg = self.serializer.deserialize(data)
-        _logger.debug('Received message: %s' % msg)
+        if data:
+            _logger.debug('Received data: %s' % data)
+            # TODO: add concatenation of possible fragments.
+            msg = self.serializer.deserialize(data)
+            _logger.debug('Received message: %s' % msg)
 
-        # TODO: add invocation context to support response association.
-        # TODO: add concatenation of possible fragments.
-        map(lambda l: l.on_message_received(msg), self.listeners)
+            # TODO: add invocation context to support response association.
+            map(lambda l: l.on_message_received(msg), self.listeners)
+
+            # call internal handler of service level messages:
+            self._on_message_received(msg)
+            return True
+
+        # else: received no data on a readable socket --> connection closed?
+        _logger.warning('Frontend sent empty data.')
+        return False
+
+    def _on_message_received(self, msg):
+        if isinstance(msg, Shutdown):
+            _logger.debug('Frontend requested backend to shut down.')
+            self.state = State.ShutdownPending
