@@ -3,8 +3,9 @@ import enum
 import logging
 import socket
 import select
-from jep.protocol import JepProtocolListener, MessageSerializer
-from jep.schema import Shutdown
+import datetime
+from jep.protocol import MessageSerializer
+from jep.schema import Shutdown, BackendAlive
 
 _logger = logging.getLogger(__name__)
 
@@ -18,9 +19,9 @@ LISTEN_QUEUE_LENGTH = 3
 BUFFER_LENGTH = 10000
 
 #: Number of seconds between select timeouts.
-TIMEOUT_SELECT_SEC = 1
+TIMEOUT_SELECT_SEC = 0.5
 
-#: Number of seconds between backend alive messages.
+#: Number of seconds between backend alive messages. Optimal: PERIOD_BACKEND_ALIVE_SEC = n * TIMEOUT_SELECT_SEC
 PERIOD_BACKEND_ALIVE_SEC = 1
 
 
@@ -39,10 +40,18 @@ class Backend():
     """Synchronous JEP backend service."""
 
     def __init__(self, listeners=None, serializer=None):
-        self.sockets = []
-        self.state = State.Stopped
+        #: Serializer used for message serialization and deserialization.
         self.serializer = serializer or MessageSerializer()
+        #: Message listeners.
         self.listeners = listeners or []
+        #: Active sockets, [0] is the server socket.
+        self.sockets = []
+        #: Current state of backend.
+        self.state = State.Stopped
+        #: Timestamp of last alive message.
+        self.alive_sent = None
+        #: Cache for BackendAlive message in serialized form.
+        self.backend_alive_data = self.serializer.serialize(BackendAlive())
 
     @property
     def serversocket(self):
@@ -89,8 +98,11 @@ class Backend():
                         _logger.info('Closing connection to frontend.')
                         self._close(sock)
 
+            self._cyclic()
+
         if self.state == State.ShutdownPending:
-            map(self._close, self.sockets)
+            for sock in self.sockets:
+                self._close(sock)
             self.state = State.Stopped
 
     def _accept(self):
@@ -108,8 +120,9 @@ class Backend():
             msg = self.serializer.deserialize(data)
             _logger.debug('Received message: %s' % msg)
 
-            # TODO: add invocation context to support response association.
-            map(lambda l: l.on_message_received(msg), self.listeners)
+            context = MessageContext(self, clientsocket)
+            for listener in self.listeners:
+                listener.on_message_received(msg, context)
 
             # call internal handler of service level messages:
             self._on_message_received(msg)
@@ -124,6 +137,43 @@ class Backend():
         self.sockets.remove(sock)
 
     def _on_message_received(self, msg):
+        """Handler for service level messages."""
         if isinstance(msg, Shutdown):
             _logger.debug('Frontend requested backend to shut down.')
             self.state = State.ShutdownPending
+
+    def _cyclic(self):
+        """Cyclic processing of service level tasks."""
+
+        # send alive message if front-end connected and message is due:
+        num_frontends = len(self.sockets) - 1
+        if num_frontends > 0:
+            now = datetime.datetime.now()
+            if not self.alive_sent or (now - self.alive_sent) >= datetime.timedelta(seconds=PERIOD_BACKEND_ALIVE_SEC):
+                _logger.debug('Sending alive message to %d frontend(s).' % num_frontends)
+
+                for sock in self.sockets[1:]:
+                    self._send_data(sock, self.backend_alive_data)
+                self.alive_sent = now
+
+    def send_message(self, context, msg):
+        """Message used by MessageContext only to delegate send."""
+        _logger.debug('Sending message: %s.' % msg)
+        serialized = self.serializer.serialize(msg)
+        _logger.debug('Sending data: %s.' % serialized)
+        self._send_data(context.sock, serialized)
+
+    @classmethod
+    def _send_data(cls, sock, data):
+        sock.send(data)
+
+
+class MessageContext:
+    """Context of a request by frontend message."""
+
+    def __init__(self, service, sock):
+        self.service = service
+        self.sock = sock
+
+    def send_message(self, msg):
+        self.service.send_message(self, msg)
