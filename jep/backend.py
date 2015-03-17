@@ -1,9 +1,7 @@
 """Framework independent PEP backend implementation."""
 import enum
 import logging
-import logging.config
 import socket
-import sys
 import select
 from jep.protocol import JepProtocolListener, MessageSerializer
 
@@ -92,49 +90,6 @@ class Backend():
         msg = self.serializer.deserialize(data)
         _logger.debug('Received message: %s' % msg)
 
+        # TODO: add invocation context to support response association.
+        # TODO: add concatenation of possible fragments.
         map(lambda l: l.on_message_received(msg), self.listeners)
-
-
-def main():
-    backend = Backend()
-    backend.start()
-
-
-def _configure_logging():
-    logging.config.dictConfig({
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'simple': {
-                'format': '%(asctime)s %(name)s %(levelname)s: %(message)s'
-            }
-        },
-        'handlers': {
-            'console': {
-                'stream': sys.stdout,
-                'class': 'logging.StreamHandler',
-                'formatter': 'simple'
-            }
-        },
-        'loggers': {
-            'jep': {
-                'handlers': ['console'],
-                'propagate': False,
-                'level': 'DEBUG'
-            },
-            '__main__': {
-                'handlers': ['console'],
-                'propagate': False,
-                'level': 'DEBUG'
-            }
-        },
-        'root': {
-            'level': 'WARNING',
-            'handlers': ['console']
-        }
-    })
-
-
-if __name__ == '__main__':
-    _configure_logging()
-    main()
