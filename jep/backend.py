@@ -22,7 +22,10 @@ BUFFER_LENGTH = 10000
 TIMEOUT_SELECT_SEC = 0.5
 
 #: Number of seconds between backend alive messages. Optimal: PERIOD_BACKEND_ALIVE_SEC = n * TIMEOUT_SELECT_SEC
-PERIOD_BACKEND_ALIVE_SEC = 1
+TIMEOUT_BACKEND_ALIVE = datetime.timedelta(seconds=1)
+
+#: Timeout of backend after last frontend message was received.
+TIMEOUT_BACKEND = datetime.timedelta(seconds=1)
 
 # TODO Connection timeout.
 
@@ -51,9 +54,11 @@ class Backend():
         #: Current state of backend.
         self.state = State.Stopped
         #: Timestamp of last alive message.
-        self.alive_sent = None
+        self.ts_alive_sent = None
         #: Cache for BackendAlive message in serialized form.
-        self.backend_alive_data = self.serializer.serialize(BackendAlive())
+        self.BACKEND_ALIVE_DATA = self.serializer.serialize(BackendAlive())
+        #: Timestamps, when last message from backends was received (socket --> timestamp).
+        self.ts_message_received_map = dict()
 
     @property
     def serversocket(self):
@@ -71,6 +76,7 @@ class Backend():
 
         assert self.state is State.Stopped
         assert not self.sockets, 'Unexpected active sockets after shutdown.'
+        assert not self.ts_message_received_map, 'Unexpected message timeout after shutdown.'
 
     def _listen(self):
         """Set up server socket to listen for incoming connections."""
@@ -114,6 +120,7 @@ class Backend():
         """Blocking accept of incoming connection."""
         clientsocket, *_ = self.serversocket.accept()
         self.sockets.append(clientsocket)
+        self.ts_message_received_map[clientsocket] = datetime.datetime.now()
         _logger.info('Frontend connected.')
 
     def _receive(self, clientsocket):
@@ -138,6 +145,7 @@ class Backend():
     def _close(self, sock):
         sock.close()
         self.sockets.remove(sock)
+        self.ts_message_received_map.pop(sock, None)
 
     def _on_message_received(self, msg):
         """Handler for service level messages."""
@@ -148,16 +156,23 @@ class Backend():
     def _cyclic(self):
         """Cyclic processing of service level tasks."""
 
-        # send alive message if front-end connected and message is due:
+        now = datetime.datetime.now()
         num_frontends = len(self.sockets) - 1
         if num_frontends > 0:
-            now = datetime.datetime.now()
-            if not self.alive_sent or (now - self.alive_sent) >= datetime.timedelta(seconds=PERIOD_BACKEND_ALIVE_SEC):
+
+            # send alive message if front-end connected and message is due:
+            if not self.ts_alive_sent or (now - self.ts_alive_sent >= TIMEOUT_BACKEND_ALIVE):
                 _logger.debug('Sending alive message to %d frontend(s).' % num_frontends)
 
                 for sock in self.sockets[1:]:
-                    self._send_data(sock, self.backend_alive_data)
-                self.alive_sent = now
+                    self._send_data(sock, self.BACKEND_ALIVE_DATA)
+                self.ts_alive_sent = now
+
+            # check timeouts for each connected frontend:
+            for sock in self.sockets[1:].copy():
+                if self.ts_message_received_map[sock] - now >= TIMEOUT_BACKEND:
+                    _logger.info('Disconnecting frontend after timeout.')
+                    self._close(sock)
 
     def send_message(self, context, msg):
         """Message used by MessageContext only to delegate send."""
