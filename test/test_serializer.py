@@ -1,4 +1,8 @@
-from enum import Enum
+try:
+    import enum
+except ImportError:
+    import jep.contrib.enum as enum
+
 import inspect
 from unittest import mock
 from jep.serializer import Serializable, serialize_to_builtins, deserialize_from_builtins
