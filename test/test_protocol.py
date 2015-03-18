@@ -1,72 +1,77 @@
+try:
+    import umsgpack
+except ImportError:
+    from jep.contrib import umsgpack
+
 from unittest import mock
 import pytest
-import jep.contrib.umsgpack as umsgpack
 from jep.protocol import MessageSerializer, JepProtocolMixin
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
     Severity, FileProblems
 
 
 def test_message_serializer_serialize_chain():
-    mock_dumps = mock.MagicMock(return_value=mock.sentinel.PACKER_RESULT)
-    serializer = MessageSerializer(dumps=mock_dumps)
+    mock_packer = mock.MagicMock()
+    mock_packer.dumps = mock.MagicMock(return_value=mock.sentinel.PACKER_RESULT)
+    serializer = MessageSerializer(mock_packer)
 
     # make sure packer is called and its result is returned:
     assert serializer.serialize(Shutdown()) == mock.sentinel.PACKER_RESULT
-    mock_dumps.assert_called_once_with(dict(_message='Shutdown'))
+    mock_packer.dumps.assert_called_once_with(dict(_message='Shutdown'))
 
 
 def test_message_serializer_deserialize_chain():
-    mock_loads = mock.MagicMock(return_value=dict(_message=mock.sentinel.MESSAGE_NAME))
-    mock_class_by_msgname = mock.MagicMock(return_value=Shutdown)
-    serializer = MessageSerializer(loads=mock_loads, class_by_msgname=mock_class_by_msgname)
-
-    assert isinstance(serializer.deserialize(mock.sentinel.PACKER_RESULT), Shutdown)
-    mock_loads.assert_called_once_with(mock.sentinel.PACKER_RESULT)
-    mock_class_by_msgname.assert_called_once_with(mock.sentinel.MESSAGE_NAME)
+    mock_packer = mock.MagicMock()
+    mock_packer.loads = mock.MagicMock(return_value=dict(_message=mock.sentinel.MESSAGE_NAME))
+    with mock.patch('jep.protocol.MESSAGE_CLASS_BY_NAME', {mock.sentinel.MESSAGE_NAME: Shutdown}) as mock_class_by_msgname:
+        serializer = MessageSerializer(mock_packer)
+        assert isinstance(serializer.deserialize(mock.sentinel.PACKER_RESULT), Shutdown)
+        mock_packer.loads.assert_called_once_with(mock.sentinel.PACKER_RESULT)
 
 
 @pytest.fixture
 def observable_serializer():
     """Provides message serializer to test with msgpack installed via observable mocks."""
-    mock_loads = mock.MagicMock(side_effect=lambda bindata: umsgpack.loads(bindata))
-    mock_dumps = mock.MagicMock(side_effect=lambda pydict: umsgpack.dumps(pydict))
-    return MessageSerializer(mock_dumps, mock_loads)
+    mock_packer = mock.MagicMock()
+    mock_packer.loads = mock.MagicMock(side_effect=lambda bindata: umsgpack.loads(bindata))
+    mock_packer.dumps = mock.MagicMock(side_effect=lambda pydict: umsgpack.dumps(pydict))
+    return MessageSerializer(mock_packer)
 
 
 def test_message_serializer_serialize_shutdown(observable_serializer):
     packed = observable_serializer.serialize(Shutdown())
-    observable_serializer.dumps.assert_called_once_with(dict(_message='Shutdown'))
+    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='Shutdown'))
     # TODO assert packed==...
 
 
 def test_message_serializer_serialize_backend_alive(observable_serializer):
     packed = observable_serializer.serialize(BackendAlive())
-    observable_serializer.dumps.assert_called_once_with(dict(_message='BackendAlive'))
+    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='BackendAlive'))
     # TODO assert packed==...
 
 
 def test_message_serializer_serialize_content_sync(observable_serializer):
     packed = observable_serializer.serialize(ContentSync('thefile', bytes('thedata', 'utf-8'), 9, 11))
-    observable_serializer.dumps.assert_called_once_with(dict(_message='ContentSync', start=9, end=11, data=bytes('thedata', 'utf-8'), file='thefile'))
+    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='ContentSync', start=9, end=11, data=bytes('thedata', 'utf-8'), file='thefile'))
     # TODO assert packed==...
 
 
 def test_message_serializer_serialize_out_of_sync(observable_serializer):
     packed = observable_serializer.serialize(OutOfSync('thefile'))
-    observable_serializer.dumps.assert_called_once_with(dict(_message='OutOfSync', file='thefile'))
+    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='OutOfSync', file='thefile'))
     # TODO assert packed==...
 
 
 def test_message_serializer_serialize_completion_request(observable_serializer):
     packed = observable_serializer.serialize(CompletionRequest('thetoken', 'thefile', 10, 17))
-    observable_serializer.dumps.assert_called_once_with(dict(_message='CompletionRequest', file='thefile', token='thetoken', pos=10, limit=17))
+    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='CompletionRequest', file='thefile', token='thetoken', pos=10, limit=17))
     # TODO assert packed==...
 
 
 def test_message_serializer_serialize_problem_update(observable_serializer):
     msg = ProblemUpdate([FileProblems('thefile', [Problem('themsg', Severity.Info, 99)], 50, 10, 20)], True)
     packed = observable_serializer.serialize(msg)
-    observable_serializer.dumps.assert_called_once_with(dict(_message='ProblemUpdate', partial=True, file_problems=[
+    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='ProblemUpdate', partial=True, file_problems=[
         dict(file='thefile', total=50, start=10, end=20, problems=[
             dict(message='themsg', severity='Info', line=99)
         ])
@@ -91,7 +96,7 @@ def test_message_serializer_serialize_completion_response(observable_serializer)
             {'display': 'display2', 'desc': 'thedescription2', 'semantics': 'Identifier', 'extension_id': 'theExtId2'}
         ]
     }
-    observable_serializer.dumps.assert_called_once_with(expected)
+    observable_serializer.packer.dumps.assert_called_once_with(expected)
     # TODO assert packed==...
 
 
@@ -110,7 +115,7 @@ def test_message_serializer_deserialize_completion_response():
     }
 
     # and use serializer without unpacker:
-    serializer = MessageSerializer(dumps=lambda s: s, loads=lambda s: s)
+    serializer = MessageSerializer(packer=None)
 
     msg = serializer.deserialize(unpacked)
 

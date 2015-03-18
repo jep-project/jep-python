@@ -46,9 +46,9 @@ class State(enum.Enum):
 class Backend():
     """Synchronous JEP backend service."""
 
-    def __init__(self, listeners=None, serializer=None):
+    def __init__(self, listeners=None):
         #: Serializer used for message serialization and deserialization.
-        self.serializer = serializer or MessageSerializer()
+        self.serializer = MessageSerializer()
         #: Message listeners.
         self.listeners = listeners or []
         #: Active sockets, [0] is the server socket.
