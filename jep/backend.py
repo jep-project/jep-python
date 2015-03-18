@@ -31,8 +31,6 @@ TIMEOUT_BACKEND_ALIVE = datetime.timedelta(seconds=1)
 #: Timeout of backend after last frontend message was received.
 TIMEOUT_BACKEND = datetime.timedelta(seconds=1)
 
-# TODO Connection timeout.
-
 
 class NoPortFoundError(Exception):
     pass
