@@ -1,5 +1,9 @@
 """Reflective serialization of messages based on mapping classes to built-in types."""
-from enum import Enum
+try:
+    import enum
+except ImportError:
+    import jep.contrib.enum as enum
+
 import inspect
 
 
@@ -59,7 +63,7 @@ class Serializable(metaclass=SerializableMeta):
 def serialize_to_builtins(o):
     """Serialization of arbitrary object to built-in data types."""
 
-    if isinstance(o, Enum):
+    if isinstance(o, enum.Enum):
         serialized = o.name
     elif isinstance(o, Serializable):
         serialized = serialize_to_builtins({key: value for key, value in o.__dict__.items() if o.is_serialized_and_not_default(key, value)})
@@ -88,7 +92,7 @@ def deserialize_from_builtins(serialized, datatype, itemtype=None):
         instantiated = [deserialize_from_builtins(item, itemtype) for item in serialized]
     elif datatype is dict and itemtype:
         instantiated = {key: deserialize_from_builtins(value, itemtype) for key, value in serialized.items()}
-    elif issubclass(datatype, Enum):
+    elif issubclass(datatype, enum.Enum):
         instantiated = datatype[serialized]
     elif not itemtype:
         instantiated = datatype(serialized)

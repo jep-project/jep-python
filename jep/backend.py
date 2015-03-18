@@ -1,5 +1,9 @@
 """Framework independent PEP backend implementation."""
-import enum
+try:
+    import enum
+except ImportError:
+    import jep.contrib.enum as enum
+
 import logging
 import socket
 import select

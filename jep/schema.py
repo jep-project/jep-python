@@ -1,5 +1,9 @@
 """JEP message types."""
-from enum import Enum, unique
+try:
+    import enum
+except ImportError:
+    import jep.contrib.enum as enum
+
 from jep.serializer import Serializable
 
 
@@ -32,8 +36,8 @@ class OutOfSync(Serializable):
         self.file = file
 
 
-@unique
-class Severity(Enum):
+@enum.unique
+class Severity(enum.Enum):
     Debug = 1
     Info = 2
     Warn = 3
@@ -75,8 +79,8 @@ class CompletionRequest(Serializable):
         self.limit = limit
 
 
-@unique
-class SemanticType(Enum):
+@enum.unique
+class SemanticType(enum.Enum):
     Comment = 1
     Type = 2
     String = 3
