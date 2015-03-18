@@ -175,7 +175,7 @@ def test_deserialize_from_builtins_none():
 
 
 def test_serialize_to_builtins_enum():
-    class MyEnum(Enum):
+    class MyEnum(enum.Enum):
         Literal1 = 1
         Literal2 = 2
 
@@ -183,7 +183,7 @@ def test_serialize_to_builtins_enum():
 
 
 def test_deserialize_from_builtins_enum():
-    class MyEnum(Enum):
+    class MyEnum(enum.Enum):
         Literal1 = 1
         Literal2 = 2
 
