@@ -70,6 +70,13 @@ class MessageSerializer:
             _logger.debug('Exception during stream decode: %s' % e)
             _logger.debug('Decoding of buffer with size %d failed, data assumed incomplete.' % len(self.buffer))
 
+    def messages(self):
+        """Iterator over messages in data buffer."""
+        msg = self.dequeue_message()
+        while msg:
+            yield msg
+            msg = self.dequeue_message()
+
     def _dequeue_message_from_stream(self, f):
         """Returns next deserialized message in queue or None."""
         assert self.packer, 'Cannot unpack stream data without packer.'

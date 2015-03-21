@@ -47,8 +47,6 @@ class Backend():
     """Synchronous JEP backend service."""
 
     def __init__(self, listeners=None):
-        #: Serializer used for message serialization and deserialization.
-        self.serializer = MessageSerializer()
         #: Message listeners.
         self.listeners = listeners or []
         #: Active sockets, [0] is the server socket.
@@ -58,9 +56,9 @@ class Backend():
         #: Timestamp of last alive message.
         self.ts_alive_sent = None
         #: Cache for BackendAlive message in serialized form.
-        self.BACKEND_ALIVE_DATA = self.serializer.serialize(BackendAlive())
-        #: Timestamps, when last message from backends was received (socket --> timestamp).
-        self.ts_message_received_map = dict()
+        self.BACKEND_ALIVE_DATA = MessageSerializer().serialize(BackendAlive())
+        #: Map of socket to frontend descriptor.
+        self.frontend_by_socket = dict()
 
     @property
     def serversocket(self):
@@ -78,7 +76,7 @@ class Backend():
 
         assert self.state is State.Stopped
         assert not self.sockets, 'Unexpected active sockets after shutdown.'
-        assert not self.ts_message_received_map, 'Unexpected message timeout after shutdown.'
+        assert not self.frontend_by_socket, 'Unexpected frontend descriptors after shutdown.'
 
     def _listen(self):
         """Set up server socket to listen for incoming connections."""
@@ -122,7 +120,7 @@ class Backend():
         """Blocking accept of incoming connection."""
         clientsocket, *_ = self.serversocket.accept()
         self.sockets.append(clientsocket)
-        self.ts_message_received_map[clientsocket] = datetime.datetime.now()
+        self.frontend_by_socket[clientsocket] = FrontendDescriptor()
         _logger.info('Frontend connected.')
 
     def _receive(self, clientsocket):
@@ -130,16 +128,18 @@ class Backend():
         data = clientsocket.recv(BUFFER_LENGTH)
         if data:
             _logger.debug('Received data: %s' % data)
-            # TODO: add concatenation of possible fragments.
-            msg = self.serializer.deserialize(data)
-            _logger.debug('Received message: %s' % msg)
+            frontend_descriptor = self.frontend_by_socket[clientsocket]
+            frontend_descriptor.ts_last_data_received = datetime.datetime.now()
+            frontend_descriptor.serializer.enque_data(data)
 
-            context = MessageContext(self, clientsocket)
-            for listener in self.listeners:
-                listener.on_message_received(msg, context)
+            for msg in frontend_descriptor.serializer.messages():
+                _logger.debug('Received message: %s' % msg)
+                context = MessageContext(self, clientsocket)
+                for listener in self.listeners:
+                    listener.on_message_received(msg, context)
 
-            # call internal handler of service level messages:
-            self._on_message_received(msg)
+                # call internal handler of service level messages:
+                self._on_message_received(msg)
         else:
             _logger.info('Closing connection to frontend due to empty data reception.')
             self._close(clientsocket)
@@ -147,7 +147,7 @@ class Backend():
     def _close(self, sock):
         sock.close()
         self.sockets.remove(sock)
-        self.ts_message_received_map.pop(sock, None)
+        self.frontend_by_socket.pop(sock, None)
 
     def _on_message_received(self, msg):
         """Handler for service level messages."""
@@ -172,7 +172,7 @@ class Backend():
 
             # check timeouts for each connected frontend:
             for sock in self.sockets[1:].copy():
-                if self.ts_message_received_map[sock] - now >= TIMEOUT_BACKEND:
+                if self.frontend_by_socket[sock].ts_last_data_received - now >= TIMEOUT_BACKEND:
                     _logger.info('Disconnecting frontend after timeout.')
                     self._close(sock)
 
@@ -197,3 +197,14 @@ class MessageContext:
 
     def send_message(self, msg):
         self.service.send_message(self, msg)
+
+
+class FrontendDescriptor:
+    """Information about a connected frontend."""
+
+    def __init__(self):
+        #: Timestamp of last message received from this frontend (initialized due to accept).
+        self.ts_last_data_received = datetime.datetime.now()
+
+        #: Serializer used to decode data from frontend.
+        self.serializer = MessageSerializer()

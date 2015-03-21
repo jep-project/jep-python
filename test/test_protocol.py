@@ -169,3 +169,17 @@ def test_message_serializer_enqueue_dequeue_incomplete():
 
     assert isinstance(serializer.dequeue_message(), CompletionResponse)
     assert not serializer.dequeue_message()
+
+
+def test_message_serializer_message_iterator():
+    serializer = MessageSerializer()
+
+    serializer.enque_data(serializer.serialize(CompletionResponse('token', 1, 2, False)))
+    serializer.enque_data(serializer.serialize(CompletionResponse('token2', 3, 4, True)))
+
+    count = 0
+    for msg in serializer.messages():
+        assert isinstance(msg, CompletionResponse)
+        count += 1
+
+    assert count == 2
