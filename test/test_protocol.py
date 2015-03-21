@@ -22,11 +22,12 @@ def test_message_serializer_serialize_chain():
 
 def test_message_serializer_deserialize_chain():
     mock_packer = mock.MagicMock()
-    mock_packer.loads = mock.MagicMock(return_value=dict(_message=mock.sentinel.MESSAGE_NAME))
+    mock_packer.load = mock.MagicMock(return_value=dict(_message=mock.sentinel.MESSAGE_NAME))
+    buffer = bytes(b'bytes')
     with mock.patch('jep.protocol.MESSAGE_CLASS_BY_NAME', {mock.sentinel.MESSAGE_NAME: Shutdown}) as mock_class_by_msgname:
         serializer = MessageSerializer(mock_packer)
-        assert isinstance(serializer.deserialize(mock.sentinel.PACKER_RESULT), Shutdown)
-        mock_packer.loads.assert_called_once_with(mock.sentinel.PACKER_RESULT)
+        assert isinstance(serializer.deserialize(buffer), Shutdown)
+        assert mock_packer.load.called
 
 
 @pytest.fixture
@@ -114,13 +115,57 @@ def test_message_serializer_deserialize_completion_response():
         ]
     }
 
-    # and use serializer without unpacker:
-    serializer = MessageSerializer(packer=None)
+    packed = umsgpack.packb(unpacked)
 
-    msg = serializer.deserialize(unpacked)
+    # and use serializer without unpacker:
+    serializer = MessageSerializer()
+
+    msg = serializer.deserialize(packed)
 
     expected = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', SemanticType.String, 'theExtId'),
                                                              CompletionOption('display2', 'thedescription2', SemanticType.Identifier, 'theExtId2')])
 
     # avoid implementation of eq in schema classes, so rely on correct serialization for now:
     assert serializer.serialize(msg) == serializer.serialize(expected)
+
+
+def test_message_serializer_enqueue_dequeue():
+    serializer = MessageSerializer()
+
+    serializer.enque_data(serializer.serialize(CompletionResponse('token', 1, 2, False)))
+    serializer.enque_data(serializer.serialize(CompletionResponse('token2', 3, 4, True)))
+
+    assert serializer.buffer
+
+    msg1 = serializer.dequeue_message()
+    msg2 = serializer.dequeue_message()
+    msg3 = serializer.dequeue_message()
+    msg4 = serializer.dequeue_message()
+
+    assert isinstance(msg1, CompletionResponse)
+    assert msg1.token == 'token'
+    assert msg1.start == 1
+    assert msg1.end == 2
+    assert not msg1.limit_exceeded
+
+    assert isinstance(msg2, CompletionResponse)
+    assert msg2.token == 'token2'
+    assert msg2.start == 3
+    assert msg2.end == 4
+    assert msg2.limit_exceeded
+
+    assert not msg3
+    assert not msg4
+
+
+def test_message_serializer_enqueue_dequeue_incomplete():
+    serializer = MessageSerializer()
+    packed = serializer.serialize(CompletionResponse('token', 1, 2, False))
+    assert len(packed) > 1
+
+    for b in packed:
+        assert not serializer.dequeue_message()
+        serializer.enque_data([b])
+
+    assert isinstance(serializer.dequeue_message(), CompletionResponse)
+    assert not serializer.dequeue_message()

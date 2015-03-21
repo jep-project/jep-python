@@ -47,14 +47,11 @@ class MessageSerializer:
     def deserialize(self, serialized):
         """Deserialize with optional packer, then create message object from builtins."""
 
-        if self.packer:
-            serialized = self.packer.loads(serialized)
+        with io.BytesIO(serialized) as f:
+            return self._dequeue_message_from_stream(f)
 
-        datatype = MESSAGE_CLASS_BY_NAME[(serialized[MESSAGE_KEY])]
-        return deserialize_from_builtins(serialized, datatype)
-
-    def enqueue_data(self, chunk):
-        """Accumulates data chunks until the buffer holds a complete object."""
+    def enque_data(self, chunk):
+        """Accumulates packed data chunks until the buffer holds a complete object."""
         self.buffer.extend(chunk)
 
     def dequeue_message(self):
@@ -63,7 +60,22 @@ class MessageSerializer:
             return None
 
         try:
-            f = io.BytesIO(self.buffer)
-        except:
-            pass
+            with io.BytesIO(self.buffer) as f:
+                message = self._dequeue_message_from_stream(f)
+                pos = f.tell()
+                self.buffer = self.buffer[pos:]
+                _logger.debug('Decoded %d bytes from stream to message %s. %d bytes left.' % (pos, message.__class__, len(self.buffer)))
+            return message
+        except Exception as e:
+            _logger.debug('Exception during stream decode: %s' % e)
+            _logger.debug('Decoding of buffer with size %d failed, data assumed incomplete.' % len(self.buffer))
+
+    def _dequeue_message_from_stream(self, f):
+        """Returns next deserialized message in queue or None."""
+        assert self.packer, 'Cannot unpack stream data without packer.'
+
+        obj = self.packer.load(f)
+        datatypename = obj[MESSAGE_KEY]
+        message = deserialize_from_builtins(obj, MESSAGE_CLASS_BY_NAME[datatypename])
+        return message
 
