@@ -76,7 +76,7 @@ class Backend():
 
         assert self.state is State.Stopped
         assert not self.sockets, 'Unexpected active sockets after shutdown.'
-        assert not self.frontend_by_socket, 'Unexpected frontend descriptors after shutdown.'
+        assert not self.frontend_by_socket, 'Unexpected frontend connectors after shutdown.'
 
     def _listen(self):
         """Set up server socket to listen for incoming connections."""
@@ -94,7 +94,7 @@ class Backend():
         if self.state is not State.Running:
             _logger.error('Could not bind to any available port in range [%d,%d]. Startup failed.' % PORT_RANGE)
             raise NoPortFoundError()
-        print('JEP service, listening on port %d' % port)
+        print('JEP service, listening on port %d' % port, flush=True)
 
     def _run(self):
         """Process connections and messages. This is the main loop of the server."""
@@ -120,7 +120,7 @@ class Backend():
         """Blocking accept of incoming connection."""
         clientsocket, *_ = self.serversocket.accept()
         self.sockets.append(clientsocket)
-        self.frontend_by_socket[clientsocket] = FrontendDescriptor()
+        self.frontend_by_socket[clientsocket] = FrontendConnector()
         _logger.info('Frontend connected.')
 
     def _receive(self, clientsocket):
@@ -199,7 +199,7 @@ class MessageContext:
         self.service.send_message(self, msg)
 
 
-class FrontendDescriptor:
+class FrontendConnector:
     """Information about a connected frontend."""
 
     def __init__(self):
