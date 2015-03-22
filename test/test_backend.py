@@ -1,7 +1,8 @@
 """Tests of backend features (no integration with frontend)."""
 from unittest import mock
+import datetime
 import pytest
-from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendConnector
+from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendConnector, TIMEOUT_BACKEND_ALIVE
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive
 
@@ -78,6 +79,17 @@ def test_receive_shutdown():
     assert backend.state is State.ShutdownPending
 
 
+def test_receive_empty():
+    mock_clientsocket = mock.MagicMock()
+    mock_clientsocket.recv = mock.MagicMock(return_value=None)
+    backend = Backend()
+    backend.frontend_by_socket[mock_clientsocket] = FrontendConnector()
+    backend.sockets.append(mock_clientsocket)
+
+    backend._receive(mock_clientsocket)
+    mock_clientsocket.close.assert_called_once()
+
+
 def test_message_context():
     mock_clientsocket = mock.MagicMock()
     mock_clientsocket.recv = mock.MagicMock(return_value=MessageSerializer().serialize(Shutdown()))
@@ -92,3 +104,38 @@ def test_message_context():
 
     message_context.send_message(BackendAlive())
     assert mock_clientsocket.send.call_count == 1
+
+
+@mock.patch('jep.backend.datetime')
+def test_backend_alive_cycle(mock_datetime_mod):
+    now = datetime.datetime.now()
+    mock_datetime_mod.datetime.now = mock.MagicMock(side_effect=lambda: now)
+
+    mock_clientsocket1 = mock.MagicMock()
+    mock_clientsocket2 = mock.MagicMock()
+    backend = Backend()
+    backend.sockets = [mock.sentinel.SERVER_SOCKET, mock_clientsocket1, mock_clientsocket2]
+    backend.frontend_by_socket[mock_clientsocket1] = FrontendConnector()
+    backend.frontend_by_socket[mock_clientsocket2] = FrontendConnector()
+
+    # cycle must send alive for all newly connected frontends:
+    backend._cyclic()
+    assert b'BackendAlive' in mock_clientsocket1.send.call_args[0][0]
+    assert b'BackendAlive' in mock_clientsocket2.send.call_args[0][0]
+
+    # no new alive message before timeout has expired:
+    assert TIMEOUT_BACKEND_ALIVE > datetime.timedelta(0)
+    now += TIMEOUT_BACKEND_ALIVE * 0.9
+    mock_clientsocket1.send.reset_mock()
+    mock_clientsocket2.send.reset_mock()
+    backend._cyclic()
+    assert not mock_clientsocket1.called
+    assert not mock_clientsocket2.called
+
+    # but right after:
+    now += TIMEOUT_BACKEND_ALIVE * 0.15
+    mock_clientsocket1.send.reset_mock()
+    mock_clientsocket2.send.reset_mock()
+    backend._cyclic()
+    assert b'BackendAlive' in mock_clientsocket1.send.call_args[0][0]
+    assert b'BackendAlive' in mock_clientsocket2.send.call_args[0][0]
