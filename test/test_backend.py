@@ -1,7 +1,9 @@
 """Tests of backend features (no integration with frontend)."""
 from unittest import mock
 import pytest
-from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE
+from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendConnector
+from jep.protocol import MessageSerializer
+from jep.schema import Shutdown
 
 
 def test_initial_state():
@@ -55,3 +57,22 @@ def test_bind_and_listen_and_accept_and_disconnect(mock_select_mod, mock_socket_
 
     out, *_ = capsys.readouterr()
     assert 'JEP service, listening on port 9001' in out
+
+
+def test_receive_shutdown():
+    mock_clientsocket = mock.MagicMock()
+    mock_clientsocket.recv = mock.MagicMock(return_value=MessageSerializer().serialize(Shutdown()))
+    mock_listener1 = mock.MagicMock()
+    mock_listener2 = mock.MagicMock()
+    backend = Backend([mock_listener1, mock_listener2])
+    backend.frontend_by_socket[mock_clientsocket] = FrontendConnector()
+
+    assert backend.state is not State.ShutdownPending
+    backend._receive(mock_clientsocket)
+
+    # listeners are called:
+    assert isinstance(mock_listener1.on_message_received.call_args[0][0], Shutdown)
+    assert isinstance(mock_listener2.on_message_received.call_args[0][0], Shutdown)
+
+    # backend reacted to shutdown:
+    assert backend.state is State.ShutdownPending
