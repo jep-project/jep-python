@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendConnector
 from jep.protocol import MessageSerializer
-from jep.schema import Shutdown
+from jep.schema import Shutdown, BackendAlive
 
 
 def test_initial_state():
@@ -76,3 +76,19 @@ def test_receive_shutdown():
 
     # backend reacted to shutdown:
     assert backend.state is State.ShutdownPending
+
+
+def test_message_context():
+    mock_clientsocket = mock.MagicMock()
+    mock_clientsocket.recv = mock.MagicMock(return_value=MessageSerializer().serialize(Shutdown()))
+    mock_listener = mock.MagicMock()
+    backend = Backend([mock_listener])
+    backend.frontend_by_socket[mock_clientsocket] = FrontendConnector()
+
+    backend._receive(mock_clientsocket)
+    message_context = mock_listener.on_message_received.call_args[0][1]
+    assert message_context.service is backend
+    assert message_context.sock is mock_clientsocket
+
+    message_context.send_message(BackendAlive())
+    assert mock_clientsocket.send.call_count == 1

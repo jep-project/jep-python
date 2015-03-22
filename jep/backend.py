@@ -179,7 +179,7 @@ class Backend():
     def send_message(self, context, msg):
         """Message used by MessageContext only to delegate send."""
         _logger.debug('Sending message: %s.' % msg)
-        serialized = self.frontend_by_socket[context.sock].serialize(msg)
+        serialized = self.frontend_by_socket[context.sock].serializer.serialize(msg)
         _logger.debug('Sending data: %s.' % serialized)
         self._send_data(context.sock, serialized)
 
