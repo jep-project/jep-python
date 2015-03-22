@@ -2,9 +2,9 @@
 from unittest import mock
 import datetime
 import pytest
-from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendConnector, TIMEOUT_BACKEND_ALIVE
+from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendConnector, TIMEOUT_BACKEND_ALIVE, TIMEOUT_BACKEND
 from jep.protocol import MessageSerializer
-from jep.schema import Shutdown, BackendAlive
+from jep.schema import Shutdown, BackendAlive, CompletionRequest
 
 
 def test_initial_state():
@@ -111,6 +111,8 @@ def test_backend_alive_cycle(mock_datetime_mod):
     now = datetime.datetime.now()
     mock_datetime_mod.datetime.now = mock.MagicMock(side_effect=lambda: now)
 
+    assert TIMEOUT_BACKEND_ALIVE > datetime.timedelta(0)
+
     mock_clientsocket1 = mock.MagicMock()
     mock_clientsocket2 = mock.MagicMock()
     backend = Backend()
@@ -124,7 +126,6 @@ def test_backend_alive_cycle(mock_datetime_mod):
     assert b'BackendAlive' in mock_clientsocket2.send.call_args[0][0]
 
     # no new alive message before timeout has expired:
-    assert TIMEOUT_BACKEND_ALIVE > datetime.timedelta(0)
     now += TIMEOUT_BACKEND_ALIVE * 0.9
     mock_clientsocket1.send.reset_mock()
     mock_clientsocket2.send.reset_mock()
@@ -139,3 +140,45 @@ def test_backend_alive_cycle(mock_datetime_mod):
     backend._cyclic()
     assert b'BackendAlive' in mock_clientsocket1.send.call_args[0][0]
     assert b'BackendAlive' in mock_clientsocket2.send.call_args[0][0]
+
+
+@mock.patch('jep.backend.datetime')
+def test_frontend_timeout(mock_datetime_mod):
+    now = datetime.datetime.now()
+    mock_datetime_mod.datetime.now = mock.MagicMock(side_effect=lambda: now)
+    mock_clientsocket1 = mock.MagicMock()
+    mock_clientsocket2 = mock.MagicMock()
+    backend = Backend()
+    backend.sockets = [mock.sentinel.SERVER_SOCKET, mock_clientsocket1, mock_clientsocket2]
+    backend.frontend_by_socket[mock_clientsocket1] = FrontendConnector()
+    backend.frontend_by_socket[mock_clientsocket2] = FrontendConnector()
+
+    assert TIMEOUT_BACKEND > datetime.timedelta(0)
+
+    # prevent alive message is mixed into communication:
+    backend.ts_alive_sent = now
+
+    backend._cyclic()
+    assert not mock_clientsocket1.close.called
+    assert not mock_clientsocket2.close.called
+
+    now += 0.9 * TIMEOUT_BACKEND
+    backend.ts_alive_sent = now
+    backend._cyclic()
+    assert not mock_clientsocket1.close.called
+    assert not mock_clientsocket2.close.called
+
+    # now receive a message from one frontend:
+    mock_clientsocket1.recv = mock.MagicMock(return_value=MessageSerializer().serialize(CompletionRequest('t', 'g', 10)))
+    backend._receive(mock_clientsocket1)
+
+    now += 0.2 * TIMEOUT_BACKEND
+    backend.ts_alive_sent = now
+    backend._cyclic()
+    assert not mock_clientsocket1.close.called
+    assert mock_clientsocket2.close.called
+
+    now += TIMEOUT_BACKEND
+    backend.ts_alive_sent = now
+    backend._cyclic()
+    assert mock_clientsocket1.close.called

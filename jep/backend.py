@@ -29,7 +29,7 @@ TIMEOUT_SELECT_SEC = 0.5
 TIMEOUT_BACKEND_ALIVE = datetime.timedelta(seconds=1)
 
 #: Timeout of backend after last frontend message was received.
-TIMEOUT_BACKEND = datetime.timedelta(seconds=1)
+TIMEOUT_BACKEND = datetime.timedelta(minutes=1)
 
 
 class NoPortFoundError(Exception):
@@ -172,7 +172,7 @@ class Backend():
 
             # check timeouts for each connected frontend:
             for sock in self.sockets[1:].copy():
-                if self.frontend_by_socket[sock].ts_last_data_received - now >= TIMEOUT_BACKEND:
+                if now - self.frontend_by_socket[sock].ts_last_data_received >= TIMEOUT_BACKEND:
                     _logger.info('Disconnecting frontend after timeout.')
                     self._close(sock)
 

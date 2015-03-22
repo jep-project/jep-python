@@ -7,12 +7,6 @@ except ImportError:
 from jep.serializer import Serializable
 
 
-def class_by_msgname(name):
-    """Returns message class by name in message protocol."""
-    # for now class names and message name is identical, later we can restrict or map here as well:
-    return locals()[name]
-
-
 class Shutdown(Serializable):
     pass
 
