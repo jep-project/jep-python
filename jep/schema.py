@@ -130,3 +130,12 @@ class CompletionResponse(Message):
 
     def invoke(self, listener, context):
         listener.on_completion_response(self, context)
+
+
+class CompletionInvocation(Message):
+    def __init__(self, extension_id):
+        super().__init__()
+        self.extension_id = extension_id
+
+    def invoke(self, listener, context):
+        listener.on_completion_invocation(self, context)

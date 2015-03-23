@@ -13,6 +13,15 @@ events and then run the backend with those listeners.
 from jep.backend import Backend, FrontendListener
 
 class Listener(FrontendListener):
-    def on_shutdown(self, context):
-        _logger.info('Received shutdown in listener.')
+    def on_completion_request(self, completion_request, context):
+        # process completion request and send back response:
+        completion_response = f(completion_request)
+        context.send_message(completion_response)
+        
+# instantiate and start backend service with our listeners:
+listener = Listener()
+backend = Backend([listener])
+backend.start()
 '''
+
+Callbacks that are not needed by a certain listener do not need to be overriden in the derived class.

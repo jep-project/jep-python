@@ -7,7 +7,7 @@ from unittest import mock
 import pytest
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
-    Severity, FileProblems
+    Severity, FileProblems, CompletionInvocation
 
 
 def test_message_serializer_serialize_chain():
@@ -66,6 +66,12 @@ def test_message_serializer_serialize_out_of_sync(observable_serializer):
 def test_message_serializer_serialize_completion_request(observable_serializer):
     packed = observable_serializer.serialize(CompletionRequest('thetoken', 'thefile', 10, 17))
     observable_serializer.packer.dumps.assert_called_once_with(dict(_message='CompletionRequest', file='thefile', token='thetoken', pos=10, limit=17))
+    # TODO assert packed==...
+
+
+def test_message_serializer_serialize_completion_invocation(observable_serializer):
+    packed = observable_serializer.serialize(CompletionInvocation('id'))
+    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='CompletionInvocation', extension_id='id'))
     # TODO assert packed==...
 
 

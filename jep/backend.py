@@ -222,3 +222,6 @@ class FrontendListener:
 
     def on_completion_request(self, completion_request, context):
         return NotImplemented
+
+    def on_completion_invocation(self, completion_invocation, context):
+        return NotImplemented
