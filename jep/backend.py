@@ -136,7 +136,8 @@ class Backend():
                 _logger.debug('Received message: %s' % msg)
                 context = MessageContext(self, clientsocket)
                 for listener in self.listeners:
-                    listener.on_message_received(msg, context)
+                    # call listener's message specific handler method (visitor pattern's accept() call):
+                    msg.invoke(listener, context)
 
                 # call internal handler of service level messages:
                 self._on_message_received(msg)

@@ -72,8 +72,8 @@ def test_receive_shutdown():
     backend._receive(mock_clientsocket)
 
     # listeners are called:
-    assert isinstance(mock_listener1.on_message_received.call_args[0][0], Shutdown)
-    assert isinstance(mock_listener2.on_message_received.call_args[0][0], Shutdown)
+    mock_listener1.on_shutdown.assert_called_once()
+    mock_listener2.on_shutdown.assert_called_once()
 
     # backend reacted to shutdown:
     assert backend.state is State.ShutdownPending
@@ -98,7 +98,7 @@ def test_message_context():
     backend.frontend_by_socket[mock_clientsocket] = FrontendConnector()
 
     backend._receive(mock_clientsocket)
-    message_context = mock_listener.on_message_received.call_args[0][1]
+    message_context = mock_listener.on_shutdown.call_args[0][0]
     assert message_context.service is backend
     assert message_context.sock is mock_clientsocket
 

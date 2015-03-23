@@ -7,15 +7,23 @@ except ImportError:
 from jep.serializer import Serializable
 
 
-class Shutdown(Serializable):
-    pass
+class Message(Serializable):
+    def invoke(self, listener, context):
+        """Dispatch received message to listener. This is the accept() method of the visitor pattern."""
+        raise NotImplementedError()
 
 
-class BackendAlive(Serializable):
-    pass
+class Shutdown(Message):
+    def invoke(self, listener, context):
+        listener.on_shutdown(context)
 
 
-class ContentSync(Serializable):
+class BackendAlive(Message):
+    def invoke(self, listener, context):
+        listener.on_backend_alive(context)
+
+
+class ContentSync(Message):
     def __init__(self, file: str, data: bytes, start: int=0, end: int=-1):
         super().__init__()
         self.file = file
@@ -23,11 +31,17 @@ class ContentSync(Serializable):
         self.end = end
         self.data = data
 
+    def invoke(self, listener, context):
+        listener.on_content_sync(self, context)
 
-class OutOfSync(Serializable):
+
+class OutOfSync(Message):
     def __init__(self, file: str):
         super().__init__()
         self.file = file
+
+    def invoke(self, listener, context):
+        listener.on_out_of_sync(self, context)
 
 
 @enum.unique
@@ -57,20 +71,26 @@ class FileProblems(Serializable):
         self.end = end
 
 
-class ProblemUpdate(Serializable):
+class ProblemUpdate(Message):
     def __init__(self, file_problems: [FileProblems], partial: bool=False):
         super().__init__()
         self.file_problems = file_problems
         self.partial = partial
 
+    def invoke(self, listener, context):
+        listener.on_problem_update(self, context)
 
-class CompletionRequest(Serializable):
+
+class CompletionRequest(Message):
     def __init__(self, token: str, file: str, pos: int, limit: int=None):
         super().__init__()
         self.token = token
         self.file = file
         self.pos = pos
         self.limit = limit
+
+    def invoke(self, listener, context):
+        listener.on_completion_request(self, context)
 
 
 @enum.unique
@@ -99,7 +119,7 @@ class CompletionOption(Serializable):
         self.extension_id = extension_id
 
 
-class CompletionResponse(Serializable):
+class CompletionResponse(Message):
     def __init__(self, token: str, start: int, end: int, limit_exceeded: bool, options: [CompletionOption]=None):
         super().__init__()
         self.token = token
@@ -107,3 +127,6 @@ class CompletionResponse(Serializable):
         self.end = end
         self.limit_exceeded = limit_exceeded
         self.options = options
+
+    def invoke(self, listener, context):
+        listener.on_completion_response(self, context)
