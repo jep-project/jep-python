@@ -9,7 +9,7 @@ This implementation is currently compatible with Python 3.3+.
 Implementing JEP based support for a custom language is easy. Simply derive one or listener classes to respond to frontend
 events and then run the backend with those listeners.
 
-'''python
+```python
 from jep.backend import Backend, FrontendListener
 
 class Listener(FrontendListener):
@@ -22,6 +22,6 @@ class Listener(FrontendListener):
 listener = Listener()
 backend = Backend([listener])
 backend.start()
-'''
+```
 
 Callbacks that are not needed by a certain listener do not need to be overriden in the derived class.
