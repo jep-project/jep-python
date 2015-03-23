@@ -128,11 +128,11 @@ class Backend():
         data = clientsocket.recv(BUFFER_LENGTH)
         if data:
             _logger.debug('Received data: %s' % data)
-            frontend_descriptor = self.frontend_by_socket[clientsocket]
-            frontend_descriptor.ts_last_data_received = datetime.datetime.now()
-            frontend_descriptor.serializer.enque_data(data)
+            frontend_connector = self.frontend_by_socket[clientsocket]
+            frontend_connector.ts_last_data_received = datetime.datetime.now()
+            frontend_connector.serializer.enque_data(data)
 
-            for msg in frontend_descriptor.serializer.messages():
+            for msg in frontend_connector.serializer.messages():
                 _logger.debug('Received message: %s' % msg)
                 context = MessageContext(self, clientsocket)
                 for listener in self.listeners:
