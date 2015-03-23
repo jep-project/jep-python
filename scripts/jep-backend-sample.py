@@ -2,8 +2,7 @@
 import logging
 import logging.config
 import sys
-from jep.backend import Backend
-from jep.listeners import FrontendMessageListener
+from jep.backend import Backend, FrontendListener
 
 logging.config.dictConfig({
     'version': 1,
@@ -36,7 +35,7 @@ logging.config.dictConfig({
 _logger = logging.getLogger('jep.backend.sample')
 
 
-class Listener(FrontendMessageListener):
+class Listener(FrontendListener):
     def on_shutdown(self, context):
         _logger.info('Received shutdown in listener.')
 

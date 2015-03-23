@@ -209,3 +209,16 @@ class FrontendConnector:
 
         #: Serializer used to decode data from frontend.
         self.serializer = MessageSerializer()
+
+
+class FrontendListener:
+    """API to listen to messages from frontend, communicated via backend."""
+
+    def on_shutdown(self, context):
+        return NotImplemented
+
+    def on_content_sync(self, content_sync, context):
+        return NotImplemented
+
+    def on_completion_request(self, completion_request, context):
+        return NotImplemented
