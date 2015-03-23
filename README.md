@@ -24,4 +24,4 @@ backend = Backend([listener])
 backend.start()
 ```
 
-Callbacks that are not needed by a certain listener do not need to be overriden in the derived class.
+Callbacks that are not needed by a certain listener do not need to be overridden in the derived class.
