@@ -1,4 +1,5 @@
 """JEP service configuration."""
+import hashlib
 import re
 from os.path import splitext, abspath, exists, dirname, join, basename
 
@@ -6,10 +7,16 @@ from os.path import splitext, abspath, exists, dirname, join, basename
 class ServiceConfig:
     """Represents configuration of a single JEP service."""
 
-    def __init__(self, config_file_path, patterns, command):
+    def __init__(self, config_file_path, patterns, command, checksum):
         self.config_file_path = config_file_path
         self.patterns = patterns
         self.command = command
+        self.checksum = checksum
+
+    @property
+    def selector(self):
+        """Key used during selection of the backend service to run for a certain file."""
+        return ','.join([self.config_file_path.lower(), ','.join(self.patterns)])
 
 
 class ServiceConfigProvider:
@@ -53,8 +60,22 @@ class ServiceConfigProvider:
         with open(config_file_path) as config_file:
             # to ease parsing read whole file at once, assuming it won't consume huge amounts of memory:
             content = config_file.read()
+            checksum = cls._checksum(content)
 
         for m in cls.REPAT_SERVICE_SPEC.finditer(content):
             patterns = cls.REPAT_FILE_PATTERN.findall(m.group('patterns'))
             if patterns:
-                yield ServiceConfig(config_file_path, patterns, m.group('command'))
+                yield ServiceConfig(config_file_path, patterns, m.group('command'), checksum)
+
+    @classmethod
+    def checksum(cls, config_file_path):
+        """Computes a checksum over content of given file."""
+        with open(config_file_path) as config_file:
+            content = config_file.read()
+        return cls._checksum(content)
+
+    @classmethod
+    def _checksum(cls, string):
+        """Computes a checksum over given string."""
+        return hashlib.sha1(string.encode()).digest()
+
