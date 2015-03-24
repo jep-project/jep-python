@@ -1,5 +1,5 @@
 import os
-from jep.config import ServiceConfigProvider
+from jep.config import ServiceConfigProvider, ServiceConfig
 
 
 def setup_function(function):
@@ -48,3 +48,14 @@ def test_service_config_provider_from_subfolders():
     assert provider.provide_for('test/test.rb')
     os.chdir('sub2')
     assert provider.provide_for('test/test.rb')
+
+
+def test_service_config_selector():
+    sc1 = ServiceConfig('path1', ['*.txt'], 'doit.exe', '1234')
+    sc2 = ServiceConfig('path1', ['*.txt'], 'doit.exe', '1234')
+    sc3 = ServiceConfig('path2', ['*.txt'], 'doit.exe', '1234')
+    sc4 = ServiceConfig('path1', ['*.doc'], 'doit.exe', '1234')
+
+    assert sc1.selector == sc2.selector
+    assert not sc1.selector == sc3.selector
+    assert not sc2.selector == sc4.selector

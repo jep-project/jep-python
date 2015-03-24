@@ -9,14 +9,14 @@ class ServiceConfig:
 
     def __init__(self, config_file_path, patterns, command, checksum):
         self.config_file_path = config_file_path
-        self.patterns = patterns
+        self.patterns = tuple(patterns)
         self.command = command
         self.checksum = checksum
 
     @property
     def selector(self):
         """Key used during selection of the backend service to run for a certain file."""
-        return ','.join([self.config_file_path.lower(), ','.join(self.patterns)])
+        return hash((self.config_file_path, self.patterns))
 
 
 class ServiceConfigProvider:
