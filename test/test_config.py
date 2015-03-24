@@ -12,6 +12,7 @@ def test_service_config_provider():
     sc = provider.provide_for('test/test.rb')
     assert sc.command == 'ruby-command'
     assert os.path.exists(sc.config_file_path)
+    assert sc.checksum
 
     sc = provider.provide_for('test/test.ruby')
     assert sc.command == 'ruby-command'
@@ -59,3 +60,10 @@ def test_service_config_selector():
     assert sc1.selector == sc2.selector
     assert not sc1.selector == sc3.selector
     assert not sc2.selector == sc4.selector
+
+
+def test_service_config_provider_checksum():
+    provider = ServiceConfigProvider()
+    sc = provider.provide_for('test/test.rb')
+    assert provider.checksum('.jep') == sc.checksum
+    assert sc.checksum
