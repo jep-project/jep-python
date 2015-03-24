@@ -1,0 +1,8 @@
+*.rb, *.ruby:
+ruby-command
+
+*.c:
+c-command
+
+fullname:
+fullname-command

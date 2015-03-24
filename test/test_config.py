@@ -65,5 +65,7 @@ def test_service_config_selector():
 def test_service_config_provider_checksum():
     provider = ServiceConfigProvider()
     sc = provider.provide_for('test/test.rb')
-    assert provider.checksum('.jep') == sc.checksum
     assert sc.checksum
+    assert provider.checksum('.jep') == sc.checksum
+    assert not provider.checksum('other-jep') == sc.checksum
+    assert provider.checksum('not-existing-file') is None

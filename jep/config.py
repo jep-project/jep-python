@@ -70,9 +70,12 @@ class ServiceConfigProvider:
     @classmethod
     def checksum(cls, config_file_path):
         """Computes a checksum over content of given file."""
-        with open(config_file_path) as config_file:
-            content = config_file.read()
-        return cls._checksum(content)
+        try:
+            with open(config_file_path) as config_file:
+                content = config_file.read()
+            return cls._checksum(content)
+        except FileNotFoundError:
+            return None
 
     @classmethod
     def _checksum(cls, string):
