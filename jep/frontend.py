@@ -201,7 +201,12 @@ class BackendConnection:
 
     def _receive(self):
         """Blocking read of backend data."""
-        data = self.sock.recv(BUFFER_LENGTH)
+        data = None
+        try:
+            data = self.sock.recv(BUFFER_LENGTH)
+        except ConnectionResetError:
+            _logger.warning('Backend closed connection unexpectedly.')
+
         if data:
             _logger.debug('Received data: %s' % data)
             self.serializer.enque_data(data)
