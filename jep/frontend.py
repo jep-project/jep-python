@@ -1,19 +1,20 @@
 """JEP frontend support."""
+import collections
 import logging
 import re
 import socket
 import subprocess
 import time
-from jep.async_line_reader import AsynchronousFileReader
+
+from jep.async import AsynchronousFileReader
+from jep.config import ServiceConfigProvider
+from jep.protocol import MessageSerializer
 
 try:
     import enum
 except ImportError:
     import jep.contrib.enum as enum
 
-import collections
-from jep.config import ServiceConfigProvider
-from jep.protocol import MessageSerializer
 
 _logger = logging.getLogger(__name__)
 
@@ -115,7 +116,7 @@ class BackendConnection:
     def run(self, timeout_sec=0.5):
         """Synchronous execution of connector statemachine."""
         self._state_dispatch[self.state](timeout_sec)
-        time.sleep(1)
+        time.sleep(0.2)
 
     def send_message(self, message):
         if self.state is State.Connected:
@@ -144,7 +145,7 @@ class BackendConnection:
         # TODO receive logic via select
         # TODO cyclic tasks, e.g. alive supervision of backend
         # TODO process supervision
-        time.sleep(1)
+        pass
 
     @classmethod
     def _parse_port_announcement(cls, lines):
@@ -185,7 +186,7 @@ class BackendConnection:
     def _read_service_output(self, timeout_sec=0.0, result_lines=None):
         while not self.process_output_reader.queue_.empty():
             line = self.process_output_reader.queue_.get().strip()
-            _logger.debug('Backend output: >>>%s<<<' % line)
+            _logger.debug('[backend] >>>%s<<<' % line)
             if result_lines is not None:
                 result_lines.append(line)
 
