@@ -192,6 +192,8 @@ class Backend():
 class MessageContext:
     """Context of a request by frontend message."""
 
+    # TODO: MessageContext + FrontendConnector --> FrontendConnection, to better align with frontend design.
+
     def __init__(self, service, sock):
         self.service = service
         self.sock = sock
@@ -203,12 +205,12 @@ class MessageContext:
 class FrontendConnector:
     """Information about a connected frontend."""
 
-    def __init__(self):
+    def __init__(self, serializer=MessageSerializer()):
         #: Timestamp of last message received from this frontend (initialized due to accept).
         self.ts_last_data_received = datetime.datetime.now()
 
         #: Serializer used to decode data from frontend.
-        self.serializer = MessageSerializer()
+        self.serializer = serializer
 
 
 class FrontendListener:
