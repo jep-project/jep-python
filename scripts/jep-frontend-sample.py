@@ -1,7 +1,8 @@
 import logging
 import logging.config
 import sys
-from jep.frontend import Frontend
+from jep.frontend import Frontend, BackendListener, State
+from jep.schema import Shutdown
 
 logging.config.dictConfig({
     'version': 1,
@@ -33,9 +34,15 @@ logging.config.dictConfig({
 
 _logger = logging.getLogger('jep.frontend.sample')
 
-frontend = Frontend()
+
+class MyListener(BackendListener):
+    def on_backend_alive(self, context):
+        #context.send_message(Shutdown())
+        context.close()
+
+
+frontend = Frontend([MyListener()])
 connection = frontend.provide_connection('localfile.mydsl')
 
-while(True):
-    _logger.debug('Connector cycle.')
+while connection.state is not State.Disconnected:
     connection.run(1)

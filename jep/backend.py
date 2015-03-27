@@ -1,15 +1,16 @@
 """Framework independent PEP backend implementation."""
-try:
-    import enum
-except ImportError:
-    import jep.contrib.enum as enum
-
 import logging
 import socket
 import select
 import datetime
+from jep.config import TIMEOUT_SELECT_SEC, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive
+
+try:
+    import enum
+except ImportError:
+    import jep.contrib.enum as enum
 
 _logger = logging.getLogger(__name__)
 
@@ -19,17 +20,8 @@ PORT_RANGE = (9001, 9100)
 #: Length of server's listen queue.
 LISTEN_QUEUE_LENGTH = 3
 
-#: Data buffer length in bytes.
-BUFFER_LENGTH = 10000
-
-#: Number of seconds between select timeouts.
-TIMEOUT_SELECT_SEC = 0.5
-
 #: Number of seconds between backend alive messages. Optimal: PERIOD_BACKEND_ALIVE_SEC = n * TIMEOUT_SELECT_SEC
 TIMEOUT_BACKEND_ALIVE = datetime.timedelta(seconds=1)
-
-#: Timeout of backend after last frontend message was received.
-TIMEOUT_BACKEND = datetime.timedelta(minutes=1)
 
 
 class NoPortFoundError(Exception):
@@ -173,7 +165,7 @@ class Backend():
 
             # check timeouts for each connected frontend:
             for sock in self.sockets[1:].copy():
-                if now - self.frontend_by_socket[sock].ts_last_data_received >= TIMEOUT_BACKEND:
+                if now - self.frontend_by_socket[sock].ts_last_data_received >= TIMEOUT_LAST_MESSAGE:
                     _logger.info('Disconnecting frontend after timeout.')
                     self._close(sock)
 

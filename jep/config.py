@@ -3,6 +3,16 @@ import hashlib
 import re
 from os.path import splitext, abspath, exists, dirname, join, basename
 
+#: Data buffer length in bytes.
+import datetime
+
+BUFFER_LENGTH = 10000
+
+#: Number of seconds between select timeouts.
+TIMEOUT_SELECT_SEC = 0.5
+
+#: Timeout of backend after last frontend message was received.
+TIMEOUT_LAST_MESSAGE = datetime.timedelta(minutes=1)
 
 class ServiceConfig:
     """Represents configuration of a single JEP service."""
