@@ -172,29 +172,28 @@ class BackendConnection:
         if readable:
             self._receive()
 
-        # TODO cyclic tasks, e.g. alive message supervision of backend
-        # TODO process state supervision
-        pass
-
     def _run_disconnect_pending(self, timeout_sec):
         self._read_service_output(0.2 * timeout_sec)
 
-        backend_process_running = self.process.poll() is None
-        if not backend_process_running:
+        backend_process_running = self.process and self.process.poll() is None
+
+        if self.process and not backend_process_running:
             _logger.debug('Backend process shut down gracefully.')
+            self.process = None
 
         if backend_process_running and (datetime.datetime.now() - self.ts_last_backend_timer_reset > TIMEOUT_BACKEND_SHUTDOWN):
             _logger.warning('Backend still running and not observing shutdown protocol. Killing it.')
             self.process.kill()
             backend_process_running = False
+            self.process = None
 
-        if not backend_process_running:
-            self._read_service_output(0.2 * timeout_sec)
+        if not backend_process_running and self.process_output_reader:
             self.process_output_reader.join(timeout_sec)
             if self.process_output_reader.is_alive():
                 _logger.warning('Output reader thread not stoppable. Possible memory leak.')
             else:
                 _logger.debug('Output reader thread stopped.')
+            self._read_service_output(0.2 * timeout_sec)
             self.process_output_reader = None
             self.state = State.Disconnected
 
@@ -252,20 +251,7 @@ class BackendConnection:
             self.ts_last_backend_timer_reset = datetime.datetime.now()
             self.state = State.Connected
         else:
-            self._disconnect()
-
-    def _disconnect(self):
-        # TODO try graceful shutdown.
-        # TODO timeout.
-        if self.sock:
-            _logger.debug('Closing socket to backend.')
-            self.sock.close()
-            self.sock = None
-
-        if self.process:
-            _logger.debug('Killing backend process.')
-            self.process.kill()
-            self.process = None
+            self._close(True)
 
     def _read_service_output(self, timeout_sec=0.0, result_lines=None):
         while not self.process_output_reader.queue_.empty():
