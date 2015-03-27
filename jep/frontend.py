@@ -49,8 +49,8 @@ class Frontend:
                 if not connection.service_config.checksum == self.service_config_provider.checksum(service_config.config_file_path):
                     # configuration changed:
                     _logger.debug('Config file %s changed, need to restart connection.')
-                    connection.close()
-                    connection.open()
+                    connection.disconnect()
+                    connection.connect()
                 else:
                     _logger.debug('Using existing connection.')
             else:
@@ -65,13 +65,8 @@ class Frontend:
         """Connect to service described in configuration."""
         connection = BackendConnection(service_config, self.listeners)
         self.connection_by_service_selector[service_config.selector] = connection
-        connection.open()
+        connection.connect()
         return connection
-
-    def _disconnect(self, service_config):
-        """Disconnect from service described in configuration."""
-        connection = self.connection_by_service_selector.pop(service_config.selector)
-        connection.close()
 
 
 @enum.unique
@@ -89,21 +84,20 @@ class BackendConnection:
     def __init__(self, service_config, listeners, serializer=MessageSerializer(), provide_async_reader=AsynchronousFileReader):
         self.service_config = service_config
         self.listeners = listeners
-        self.serializer = serializer
-        self.provide_async_reader = provide_async_reader
         self.state = State.Disconnected
-        self.process = None
-        self.process_output_reader = None
-        self.sock = None
-        self.ts_last_backend_timer_reset = None
+        self._serializer = serializer
+        self._provide_async_reader = provide_async_reader
+        self._process = None
+        self._process_output_reader = None
+        self._socket = None
+        self._ts_last_backend_timer_reset = None
+        self._state_dispatch = {
+            State.Connecting: self._run_connecting,
+            State.Connected: self._run_connected,
+            State.DisconnectPending: self._run_disconnect_pending
+        }
 
-        # state dispatcher:
-        self._state_dispatch = collections.defaultdict(lambda: self._run_unhandled)
-        self._state_dispatch[State.Connecting] = self._run_connecting
-        self._state_dispatch[State.Connected] = self._run_connected
-        self._state_dispatch[State.DisconnectPending] = self._run_disconnect_pending
-
-    def open(self):
+    def connect(self):
         """Opens connection to backend service."""
         if self.state is not State.Disconnected:
             return
@@ -112,28 +106,13 @@ class BackendConnection:
 
         # launch backend process and capture its output:
         _logger.debug('Starting backend service: %s' % self.service_config.command)
-        self.process = subprocess.Popen(self.service_config.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-        self.process_output_reader = self.provide_async_reader(self.process.stdout)
-        self.process_output_reader.start()
+        self._process = subprocess.Popen(self.service_config.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        self._process_output_reader = self._provide_async_reader(self._process.stdout)
+        self._process_output_reader.start()
 
-    def close(self):
+    def disconnect(self):
         """Closes connection to backend service."""
-        self._close(False)
-
-    def _close(self, connection_lost):
-        if not connection_lost:
-            self.send_message(Shutdown())
-
-        if self.sock:
-            self.sock.close()
-            self.sock = None
-
-        # start timer to wait for backend to shut down:
-        self.ts_last_backend_timer_reset = datetime.datetime.now()
-
-        if self.state is State.Connected:
-            _logger.debug('Initiating disconnect.')
-            self.state = State.DisconnectPending
+        self._disconnect(False)
 
     def run(self, timeout_sec=0.5):
         """Synchronous execution of connector statemachine."""
@@ -143,13 +122,9 @@ class BackendConnection:
     def send_message(self, message):
         if self.state is State.Connected:
             _logger.debug('Sending message %s.' % message)
-            data = self.serializer.serialize(message)
+            data = self._serializer.serialize(message)
             _logger.debug('Sending data %s.' % data)
-            self.sock.send(data)
-
-    def _run_unhandled(self, timeout_sec):
-        _logger.warning('Reached unhandled state %s.' % self.state)
-        self._read_service_output(timeout_sec)
+            self._socket.send(data)
 
     def _run_connecting(self, timeout_sec):
         # check for service's port announcement:
@@ -166,7 +141,7 @@ class BackendConnection:
     def _run_connected(self, timeout_sec):
         self._read_service_output(0.2 * timeout_sec)
 
-        readable, *_ = select.select([self.sock], [], [], TIMEOUT_SELECT_SEC)
+        readable, *_ = select.select([self._socket], [], [], TIMEOUT_SELECT_SEC)
         _logger.debug('Readable sockets: %d' % len(readable))
 
         if readable:
@@ -175,42 +150,55 @@ class BackendConnection:
     def _run_disconnect_pending(self, timeout_sec):
         self._read_service_output(0.2 * timeout_sec)
 
-        backend_process_running = self.process and self.process.poll() is None
+        backend_process_running = self._process and self._process.poll() is None
 
-        if self.process and not backend_process_running:
+        if self._process and not backend_process_running:
             _logger.debug('Backend process shut down gracefully.')
-            self.process = None
+            self._process = None
 
-        if backend_process_running and (datetime.datetime.now() - self.ts_last_backend_timer_reset > TIMEOUT_BACKEND_SHUTDOWN):
+        if backend_process_running and (datetime.datetime.now() - self._ts_last_backend_timer_reset > TIMEOUT_BACKEND_SHUTDOWN):
             _logger.warning('Backend still running and not observing shutdown protocol. Killing it.')
-            self.process.kill()
+            self._process.kill()
             backend_process_running = False
-            self.process = None
+            self._process = None
 
-        if not backend_process_running and self.process_output_reader:
-            self.process_output_reader.join(timeout_sec)
-            if self.process_output_reader.is_alive():
+        if not backend_process_running and self._process_output_reader:
+            self._process_output_reader.join(timeout_sec)
+            if self._process_output_reader.is_alive():
                 _logger.warning('Output reader thread not stoppable. Possible memory leak.')
             else:
                 _logger.debug('Output reader thread stopped.')
             self._read_service_output(0.2 * timeout_sec)
-            self.process_output_reader = None
+            self._process_output_reader = None
             self.state = State.Disconnected
 
+    def _connect(self, port, timeout_sec):
+        try:
+            self._socket = socket.create_connection(('localhost', port), timeout_sec)
+        except Exception as e:
+            _logger.warning('Could not connect to backend at port %d within %.2f seconds.' % (port, timeout_sec))
+            self._socket = None
+
+        if self._socket:
+            # initialize timer due to successful connection:
+            self._ts_last_backend_timer_reset = datetime.datetime.now()
+            self.state = State.Connected
+        else:
+            self._disconnect(True)
 
     def _receive(self):
         """Blocking read of backend data."""
         data = None
         try:
-            data = self.sock.recv(BUFFER_LENGTH)
+            data = self._socket.recv(BUFFER_LENGTH)
         except ConnectionResetError:
             _logger.warning('Backend closed connection unexpectedly.')
 
         if data:
             _logger.debug('Received data: %s' % data)
-            self.serializer.enque_data(data)
+            self._serializer.enque_data(data)
 
-            for msg in self.serializer.messages():
+            for msg in self._serializer.messages():
                 _logger.debug('Received message: %s' % msg)
                 for listener in self.listeners:
                     # call listener's message specific handler method (visitor pattern's accept() call):
@@ -220,11 +208,26 @@ class BackendConnection:
                 self._on_message_received(msg)
         else:
             _logger.info('Closing connection to backend due to empty data reception.')
-            self._close(True)
+            self._disconnect(True)
+
+    def _disconnect(self, connection_lost):
+        if not connection_lost:
+            self.send_message(Shutdown())
+
+        if self._socket:
+            self._socket.close()
+            self._socket = None
+
+        # start timer to wait for backend to shut down:
+        self._ts_last_backend_timer_reset = datetime.datetime.now()
+
+        if self.state is State.Connected:
+            _logger.debug('Initiating disconnect.')
+            self.state = State.DisconnectPending
 
     def _on_message_received(self, message):
         if isinstance(message, BackendAlive):
-            self.ts_last_backend_timer_reset = datetime.datetime.now()
+            self._ts_last_backend_timer_reset = datetime.datetime.now()
             _logger.debug('Backend is still alive.')
 
 
@@ -239,23 +242,9 @@ class BackendConnection:
                 break
         return port
 
-    def _connect(self, port, timeout_sec):
-        try:
-            self.sock = socket.create_connection(('localhost', port), timeout_sec)
-        except Exception as e:
-            _logger.warning('Could not connect to backend at port %d within %.2f seconds.' % (port, timeout_sec))
-            self.sock = None
-
-        if self.sock:
-            # initialize timer due to successful connection:
-            self.ts_last_backend_timer_reset = datetime.datetime.now()
-            self.state = State.Connected
-        else:
-            self._close(True)
-
     def _read_service_output(self, timeout_sec=0.0, result_lines=None):
-        while not self.process_output_reader.queue_.empty():
-            line = self.process_output_reader.queue_.get().strip()
+        while not self._process_output_reader.queue_.empty():
+            line = self._process_output_reader.queue_.get().strip()
             _logger.debug('[backend] >>>%s<<<' % line)
             if result_lines is not None:
                 result_lines.append(line)
