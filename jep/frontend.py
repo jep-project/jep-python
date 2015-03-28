@@ -27,6 +27,9 @@ PATTERN_PORT_ANNOUNCEMENT = re.compile(r'JEP service, listening on port (?P<port
 #: Timeout to wait for backend shutdown.
 TIMEOUT_BACKEND_SHUTDOWN = datetime.timedelta(seconds=5)
 
+#: Timeout to wait for backend startup.
+TIMEOUT_BACKEND_STARTUP = datetime.timedelta(seconds=5)
+
 
 class Frontend:
     """Top level frontend class, once to be instantiated per editor plugin."""
@@ -109,6 +112,7 @@ class BackendConnection:
         self._process = subprocess.Popen(self.service_config.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
         self._process_output_reader = self._provide_async_reader(self._process.stdout)
         self._process_output_reader.start()
+        self._ts_last_backend_timer_reset = datetime.datetime.now()
 
     def disconnect(self):
         """Closes connection to backend service."""
@@ -133,7 +137,10 @@ class BackendConnection:
         port = self._parse_port_announcement(lines)
 
         if not port:
-            # TODO implement timeout.
+            if datetime.datetime.now() - self._ts_last_backend_timer_reset > TIMEOUT_BACKEND_STARTUP:
+                _logger.warning('Backend not starting up, aborting connection.')
+                # TODO handle shutdown of process _and_ thread
+                self._disconnect(True)
             return
 
         self._connect(port, 0.8 * timeout_sec)
@@ -158,9 +165,8 @@ class BackendConnection:
 
         if backend_process_running and (datetime.datetime.now() - self._ts_last_backend_timer_reset > TIMEOUT_BACKEND_SHUTDOWN):
             _logger.warning('Backend still running and not observing shutdown protocol. Killing it.')
-            self._process.kill()
+            self._kill_backend(backend_process_running)
             backend_process_running = False
-            self._process = None
 
         if not backend_process_running and self._process_output_reader:
             self._process_output_reader.join(timeout_sec)
@@ -248,6 +254,10 @@ class BackendConnection:
             _logger.debug('[backend] >>>%s<<<' % line)
             if result_lines is not None:
                 result_lines.append(line)
+
+    def _kill_backend(self, backend_process_running):
+        self._process.kill()
+        self._process = None
 
 
 class BackendListener:
