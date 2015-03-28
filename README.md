@@ -35,6 +35,7 @@ the frontend will start it in its own subprocess.
 Here is an example shutting down the backend service upon reception of its first alive message:
 
 ```python
+import datetime
 from jep.frontend import Frontend, BackendListener, State
 from jep.schema import Shutdown
 
@@ -47,5 +48,5 @@ frontend = Frontend([MyListener()])
 connection = frontend.provide_connection('localfile.mydsl')
 
 while connection.state is not State.Disconnected:
-    frontend.run(datetime.timedelta(seconds=1))
+    connection.run(datetime.timedelta(seconds=0.1))
 ```

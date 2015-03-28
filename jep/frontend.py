@@ -30,6 +30,9 @@ TIMEOUT_BACKEND_SHUTDOWN = datetime.timedelta(seconds=5)
 #: Timeout to wait for backend startup.
 TIMEOUT_BACKEND_STARTUP = datetime.timedelta(seconds=5)
 
+#: Period used for polling backend state.
+BACKEND_POLL_PERIOD_SEC = 0.1
+
 
 class Frontend:
     """Top level frontend class, once to be instantiated per editor plugin."""
@@ -97,7 +100,9 @@ class BackendConnection:
         self._state_dispatch = {
             State.Connecting: self._run_connecting,
             State.Connected: self._run_connected,
-            State.DisconnectPending: self._run_disconnect_pending
+            State.DisconnectPending: self._run_disconnect_pending,
+            State.Disconnected: self._run_disconnected
+
         }
 
     def connect(self):
@@ -118,10 +123,14 @@ class BackendConnection:
         """Closes connection to backend service."""
         self._disconnect(False)
 
-    def run(self, timeout_sec=0.5):
+    def run(self, duration):
         """Synchronous execution of connector statemachine."""
-        self._state_dispatch[self.state](timeout_sec)
-        time.sleep(0.2)
+        now = datetime.datetime.now()
+        endtime = now + duration
+
+        while now < endtime:
+            self._state_dispatch[self.state](endtime - now)
+            now = datetime.datetime.now()
 
     def send_message(self, message):
         if self.state is State.Connected:
@@ -130,10 +139,13 @@ class BackendConnection:
             _logger.debug('Sending data %s.' % data)
             self._socket.send(data)
 
-    def _run_connecting(self, timeout_sec):
+    def _run_disconnected(self, duration):
+        time.sleep(duration.total_seconds())
+
+    def _run_connecting(self, duration):
         # check for service's port announcement:
         lines = []
-        self._read_service_output(0.2 * timeout_sec, lines)
+        self._read_service_output(lines)
         port = self._parse_port_announcement(lines)
 
         if not port:
@@ -141,21 +153,23 @@ class BackendConnection:
                 _logger.warning('Backend not starting up, aborting connection.')
                 # TODO handle shutdown of process _and_ thread
                 self._disconnect(True)
+            else:
+                time.sleep(BACKEND_POLL_PERIOD_SEC)
             return
 
-        self._connect(port, 0.8 * timeout_sec)
+        self._connect(port, duration)
 
-    def _run_connected(self, timeout_sec):
-        self._read_service_output(0.2 * timeout_sec)
+    def _run_connected(self, duration):
+        self._read_service_output()
 
-        readable, *_ = select.select([self._socket], [], [], TIMEOUT_SELECT_SEC)
+        readable, *_ = select.select([self._socket], [], [], duration.total_seconds())
         _logger.debug('Readable sockets: %d' % len(readable))
 
         if readable:
             self._receive()
 
-    def _run_disconnect_pending(self, timeout_sec):
-        self._read_service_output(0.2 * timeout_sec)
+    def _run_disconnect_pending(self, duration):
+        self._read_service_output()
 
         backend_process_running = self._process and self._process.poll() is None
 
@@ -169,20 +183,23 @@ class BackendConnection:
             backend_process_running = False
 
         if not backend_process_running and self._process_output_reader:
-            self._process_output_reader.join(timeout_sec)
+            self._process_output_reader.join(duration.total_seconds())
             if self._process_output_reader.is_alive():
                 _logger.warning('Output reader thread not stoppable. Possible memory leak.')
             else:
                 _logger.debug('Output reader thread stopped.')
-            self._read_service_output(0.2 * timeout_sec)
+            self._read_service_output()
             self._process_output_reader = None
             self.state = State.Disconnected
 
-    def _connect(self, port, timeout_sec):
+        if backend_process_running:
+            time.sleep(BACKEND_POLL_PERIOD_SEC)
+
+    def _connect(self, port, duration):
         try:
-            self._socket = socket.create_connection(('localhost', port), timeout_sec)
+            self._socket = socket.create_connection(('localhost', port), duration.total_seconds())
         except Exception as e:
-            _logger.warning('Could not connect to backend at port %d within %.2f seconds.' % (port, timeout_sec))
+            _logger.warning('Could not connect to backend at port %d within %.2f seconds.' % (port, duration.total_seconds()))
             self._socket = None
 
         if self._socket:
@@ -248,7 +265,7 @@ class BackendConnection:
                 break
         return port
 
-    def _read_service_output(self, timeout_sec=0.0, result_lines=None):
+    def _read_service_output(self, result_lines=None):
         while not self._process_output_reader.queue_.empty():
             line = self._process_output_reader.queue_.get().strip()
             _logger.debug('[backend] >>>%s<<<' % line)

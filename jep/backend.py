@@ -117,7 +117,12 @@ class Backend():
 
     def _receive(self, clientsocket):
         """Blocking read of client data on given socket."""
-        data = clientsocket.recv(BUFFER_LENGTH)
+        data = None
+        try:
+            data = clientsocket.recv(BUFFER_LENGTH)
+        except ConnectionAbortedError as e:
+            _logger.warning('Data reception failed: %s' % e)
+
         if data:
             _logger.debug('Received data: %s' % data)
             frontend_connector = self.frontend_by_socket[clientsocket]

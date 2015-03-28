@@ -1,6 +1,7 @@
 import logging
 import logging.config
 import sys
+import datetime
 from jep.frontend import Frontend, BackendListener, State
 from jep.schema import Shutdown
 
@@ -39,11 +40,16 @@ class MyListener(BackendListener):
     def on_backend_alive(self, context):
         #context.send_message(Shutdown())
         context.disconnect()
-        pass
 
 
 frontend = Frontend([MyListener()])
 connection = frontend.provide_connection('localfile.mydsl')
 
+started = datetime.datetime.now()
+cycles = 0
 while connection.state is not State.Disconnected:
-    connection.run(1)
+    connection.run(datetime.timedelta(seconds=0.1))
+    cycles += 1
+ended = datetime.datetime.now()
+
+_logger.info('Frontend executed %d cycles in %.2f seconds.' % (cycles, (ended - started).total_seconds()))
