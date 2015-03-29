@@ -9,10 +9,11 @@ import select
 import datetime
 
 from jep.async import AsynchronousFileReader
+from jep.backend import TIMEOUT_LAST_MESSAGE
 
 from jep.config import ServiceConfigProvider, BUFFER_LENGTH
 from jep.protocol import MessageSerializer
-from jep.schema import BackendAlive, Shutdown
+from jep.schema import Shutdown
 
 try:
     import enum
@@ -26,9 +27,6 @@ PATTERN_PORT_ANNOUNCEMENT = re.compile(r'JEP service, listening on port (?P<port
 
 #: Timeout to wait for backend startup.
 TIMEOUT_BACKEND_STARTUP = datetime.timedelta(seconds=5)
-
-#: Timeout to wait for alive message from backend.
-TIMEOUT_BACKEND_ALIVE = datetime.timedelta(seconds=60)
 
 #: Timeout to wait for backend shutdown.
 TIMEOUT_BACKEND_SHUTDOWN = datetime.timedelta(seconds=5)
@@ -173,8 +171,8 @@ class BackendConnection:
         if readable:
             self._receive()
 
-        if datetime.datetime.now() - self._state_timer_reset > TIMEOUT_BACKEND_ALIVE:
-            _logger.debug('Backend did not sent alive message for %.2f seconds, disconnecting.' % TIMEOUT_BACKEND_ALIVE.total_seconds())
+        if datetime.datetime.now() - self._state_timer_reset > TIMEOUT_LAST_MESSAGE:
+            _logger.debug('Backend did not sent alive message for %.2f seconds, disconnecting.' % TIMEOUT_LAST_MESSAGE.total_seconds())
             self.disconnect()
 
     def _run_disconnecting(self, duration):

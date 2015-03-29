@@ -11,7 +11,7 @@ BUFFER_LENGTH = 10000
 #: Number of seconds between select timeouts.
 TIMEOUT_SELECT_SEC = 0.5
 
-#: Timeout of backend after last frontend message was received.
+#: Timeout after last message was received.
 TIMEOUT_LAST_MESSAGE = datetime.timedelta(minutes=1)
 
 class ServiceConfig:
