@@ -45,7 +45,7 @@ class MyListener(BackendListener):
 
 
 frontend = Frontend([MyListener()])
-connection = frontend.provide_connection('localfile.mydsl')
+connection = frontend.get_connection('localfile.mydsl')
 
 while connection.state is not State.Disconnected:
     connection.run(datetime.timedelta(seconds=0.1))

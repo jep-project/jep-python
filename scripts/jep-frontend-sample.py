@@ -44,7 +44,7 @@ class MyListener(BackendListener):
 
 
 frontend = Frontend([MyListener()])
-connection = frontend.provide_connection('localfile.mydsl')
+connection = frontend.get_connection('localfile.mydsl')
 
 started = datetime.datetime.now()
 cycles = 0

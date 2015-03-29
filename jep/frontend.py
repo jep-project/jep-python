@@ -38,12 +38,13 @@ BACKEND_POLL_PERIOD_SEC = 0.1
 class Frontend:
     """Top level frontend class, once to be instantiated per editor plugin."""
 
-    def __init__(self, listeners=None, service_config_provider=ServiceConfigProvider()):
+    def __init__(self, listeners=None, service_config_provider=None, provide_backend_connection=None):
         self.listeners = listeners or []
-        self.service_config_provider = service_config_provider
+        self.service_config_provider = service_config_provider or ServiceConfigProvider()
+        self.provide_backend_connection = provide_backend_connection or BackendConnection
         self.connection_by_service_selector = collections.defaultdict(lambda: None)
 
-    def provide_connection(self, filename):
+    def get_connection(self, filename):
         """Returns connection to a backend service that can deal with the given file. Existing service connections are reused if possible."""
         _logger.debug('Service connector requested for file: %s' % filename)
         connection = None
@@ -70,7 +71,7 @@ class Frontend:
 
     def _connect(self, service_config):
         """Connect to service described in configuration."""
-        connection = BackendConnection(service_config, self.listeners)
+        connection = self.provide_backend_connection(service_config, self.listeners)
         self.connection_by_service_selector[service_config.selector] = connection
         connection.connect()
         return connection
