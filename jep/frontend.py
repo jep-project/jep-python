@@ -24,11 +24,14 @@ _logger = logging.getLogger(__name__)
 #: Regex to find backend port announcement from backend.
 PATTERN_PORT_ANNOUNCEMENT = re.compile(r'JEP service, listening on port (?P<port>\d+)')
 
-#: Timeout to wait for backend shutdown.
-TIMEOUT_BACKEND_SHUTDOWN = datetime.timedelta(seconds=5)
-
 #: Timeout to wait for backend startup.
 TIMEOUT_BACKEND_STARTUP = datetime.timedelta(seconds=5)
+
+#: Timeout to wait for alive message from backend.
+TIMEOUT_BACKEND_ALIVE = datetime.timedelta(seconds=60)
+
+#: Timeout to wait for backend shutdown.
+TIMEOUT_BACKEND_SHUTDOWN = datetime.timedelta(seconds=5)
 
 #: Period used for polling backend state.
 BACKEND_POLL_PERIOD_SEC = 0.1
@@ -170,7 +173,9 @@ class BackendConnection:
         if readable:
             self._receive()
 
-            # TODO Alive timeout supervision
+        if datetime.datetime.now() - self._state_timer_reset > TIMEOUT_BACKEND_ALIVE:
+            _logger.debug('Backend did not sent alive message for %.2f seconds, disconnecting.' % TIMEOUT_BACKEND_ALIVE.total_seconds())
+            self.disconnect()
 
     def _run_disconnecting(self, duration):
         self._read_backend_output()
@@ -210,6 +215,9 @@ class BackendConnection:
             _logger.warning('Backend closed connection unexpectedly.')
 
         if data:
+            # any received message resets the timeout:
+            self._state_timer_reset = datetime.datetime.now()
+
             _logger.debug('Received data: %s' % data)
             self._serializer.enque_data(data)
 
@@ -218,9 +226,6 @@ class BackendConnection:
                 for listener in self.listeners:
                     # call listener's message specific handler method (visitor pattern's accept() call):
                     msg.invoke(listener, self)
-
-                # call internal handler of service level messages:
-                self._on_message_received(msg)
         else:
             _logger.info('Closing connection to backend due to empty data reception.')
             self._cleanup()
@@ -250,13 +255,6 @@ class BackendConnection:
             self._process_output_reader = None
 
         self.state = State.Disconnected
-
-
-    def _on_message_received(self, message):
-        if isinstance(message, BackendAlive):
-            self._state_timer_reset = datetime.datetime.now()
-            _logger.debug('Backend is still alive.')
-
 
     @classmethod
     def _parse_port_announcement(cls, lines):

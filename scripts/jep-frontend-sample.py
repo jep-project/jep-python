@@ -38,8 +38,9 @@ _logger = logging.getLogger('jep.frontend.sample')
 
 class MyListener(BackendListener):
     def on_backend_alive(self, context):
-        context.send_message(Shutdown())
+        #context.send_message(Shutdown())
         #context.disconnect()
+        pass
 
 
 frontend = Frontend([MyListener()])
