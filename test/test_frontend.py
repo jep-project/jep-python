@@ -1,6 +1,6 @@
 import os
 from unittest import mock
-from jep.frontend import Frontend, State
+from jep.frontend import Frontend, State, BackendConnection
 
 
 def setup_function(function):
@@ -102,3 +102,71 @@ def test_provide_connection_second_time_with_other_selector():
 
     frontend.get_connection(mock.sentinel.FILE_NAME2)
     assert mock_provide_backend_connection.call_count == 2
+
+
+def test_backend_connection_initial_state():
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS)
+    assert connection.state is State.Disconnected
+
+
+def test_backend_connection_send_message_ok():
+    mock_serializer = mock.MagicMock()
+    mock_serializer.serialize = mock.MagicMock(return_value=mock.sentinel.SERIALIZED)
+    mock_socket = mock.MagicMock()
+    mock_socket.send = mock.MagicMock()
+
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS, serializer=mock_serializer)
+    connection._socket = mock_socket
+    connection.state = State.Connected
+
+    # we have a socket and are connected, so sending the message must go through just fine:
+    connection.send_message(mock.sentinel.MESSAGE)
+
+    mock_serializer.serialize.assert_called_once_with(mock.sentinel.MESSAGE)
+    mock_socket.send.assert_called_once_with(mock.sentinel.SERIALIZED)
+
+
+def test_backend_connection_send_message_wrong_state():
+    mock_serializer = mock.MagicMock()
+    mock_serializer.serialize = mock.MagicMock(return_value=mock.sentinel.SERIALIZED)
+    mock_socket = mock.MagicMock()
+    mock_socket.send = mock.MagicMock()
+
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS, serializer=mock_serializer)
+    connection._socket = mock_socket
+
+    # no message is sent in any state that is not connected:
+    for state in {State.Disconnected, State.Connecting, State.Disconnecting}:
+        connection.state = state
+        connection.send_message(mock.sentinel.MESSAGE)
+        assert not mock_serializer.serialize.called
+        assert not mock_socket.send.called
+
+
+def test_backend_connection_send_message_serialization_failed():
+    mock_serializer = mock.MagicMock()
+    mock_serializer.serialize = mock.MagicMock(side_effect=NotImplementedError)
+    mock_socket = mock.MagicMock()
+    mock_socket.send = mock.MagicMock()
+
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS, serializer=mock_serializer)
+    connection._socket = mock_socket
+    connection.state = State.Connected
+
+    # no message is sent if serialization fails:
+    connection.send_message(mock.sentinel.MESSAGE)
+    assert not mock_socket.send.called
+
+
+def test_backend_connection_send_message_send_failed():
+    mock_serializer = mock.MagicMock()
+    mock_serializer.serialize = mock.MagicMock(return_value=mock.sentinel.SERIALIZED)
+    mock_socket = mock.MagicMock()
+    mock_socket.send = mock.MagicMock(NotImplementedError)
+
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS, serializer=mock_serializer)
+    connection._socket = mock_socket
+    connection.state = State.Connected
+
+    # no message is sent if serialization fails, but no exception surfaces either:
+    connection.send_message(mock.sentinel.MESSAGE)

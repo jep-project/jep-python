@@ -135,10 +135,13 @@ class BackendConnection:
 
     def send_message(self, message):
         if self.state is State.Connected:
-            _logger.debug('Sending message %s.' % message)
-            data = self._serializer.serialize(message)
-            _logger.debug('Sending data %s.' % data)
-            self._socket.send(data)
+            try:
+                _logger.debug('Sending message %s.' % message)
+                data = self._serializer.serialize(message)
+                _logger.debug('Sending data %s.' % data)
+                self._socket.send(data)
+            except Exception as e:
+                _logger.warning('Sending message failed: %s' % e)
         else:
             _logger.warning('In state %s no messages are sent to backend, but received request to send %s.' % (self.state, message))
 
