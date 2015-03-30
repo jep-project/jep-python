@@ -9,9 +9,7 @@ import select
 import datetime
 
 from jep.async import AsynchronousFileReader
-from jep.backend import TIMEOUT_LAST_MESSAGE
-
-from jep.config import ServiceConfigProvider, BUFFER_LENGTH
+from jep.config import ServiceConfigProvider, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown
 
@@ -173,7 +171,7 @@ class BackendConnection:
             self._receive()
 
         if datetime.datetime.now() - self._state_timer_reset > TIMEOUT_LAST_MESSAGE:
-            _logger.debug('Backend did not sent alive message for %.2f seconds, disconnecting.' % TIMEOUT_LAST_MESSAGE.total_seconds())
+            _logger.debug('Backend did not sent any message for %.2f seconds, disconnecting.' % TIMEOUT_LAST_MESSAGE.total_seconds())
             self.disconnect()
 
     def _run_disconnecting(self, duration):
