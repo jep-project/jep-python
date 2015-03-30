@@ -184,7 +184,7 @@ def test_message_serializer_message_iterator():
     serializer.enque_data(serializer.serialize(CompletionResponse('token2', 3, 4, True)))
 
     count = 0
-    for msg in serializer.messages():
+    for msg in serializer:
         assert isinstance(msg, CompletionResponse)
         count += 1
 

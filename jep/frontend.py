@@ -220,7 +220,7 @@ class BackendConnection:
             _logger.debug('Received data: %s' % data)
             self._serializer.enque_data(data)
 
-            for msg in self._serializer.messages():
+            for msg in self._serializer:
                 _logger.debug('Received message: %s' % msg)
                 for listener in self.listeners:
                     # call listener's message specific handler method (visitor pattern's accept() call):

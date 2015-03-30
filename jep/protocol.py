@@ -70,7 +70,7 @@ class MessageSerializer:
             _logger.debug('Exception during stream decode: %s' % e)
             _logger.debug('Decoding of buffer with size %d failed, data assumed incomplete.' % len(self.buffer))
 
-    def messages(self):
+    def __iter__(self):
         """Iterator over messages in data buffer."""
         msg = self.dequeue_message()
         while msg:

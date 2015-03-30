@@ -129,7 +129,7 @@ class Backend():
             frontend_connector.ts_last_data_received = datetime.datetime.now()
             frontend_connector.serializer.enque_data(data)
 
-            for msg in frontend_connector.serializer.messages():
+            for msg in frontend_connector.serializer:
                 _logger.debug('Received message: %s' % msg)
                 context = MessageContext(self, clientsocket)
                 for listener in self.listeners:
