@@ -242,7 +242,7 @@ class BackendConnection:
         if self._process:
             _logger.warning('Killing backend process.')
             self._process.kill()
-            self.process = None
+            self._process = None
 
         # stop thread reading process output:
         if self._process_output_reader:
