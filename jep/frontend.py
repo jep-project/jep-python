@@ -124,12 +124,14 @@ class BackendConnection:
         self._state_timer_reset = datetime.datetime.now()
         self.state = State.Disconnecting
 
-    def run(self, duration):
+    def run(self, duration, max_cycles=0):
         """Synchronous execution of connector statemachine."""
         now = datetime.datetime.now()
         endtime = now + duration
 
-        while now < endtime:
+        cycles = 0
+        while now < endtime and (cycles < max_cycles or not max_cycles):
+            cycles += 1
             self._state_dispatch[self.state](endtime - now)
             now = datetime.datetime.now()
 

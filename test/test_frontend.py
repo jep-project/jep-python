@@ -1,5 +1,7 @@
 import os
+import queue
 from unittest import mock
+import datetime
 from jep.frontend import Frontend, State, BackendConnection
 
 
@@ -172,28 +174,45 @@ def test_backend_connection_send_message_send_failed():
     connection.send_message(mock.sentinel.MESSAGE)
 
 
-def test_backend_connection_connect():
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.datetime')
+def test_backend_connection_connect(mock_datetime_module, mock_socket_module, mock_subprocess_module):
     mock_service_config = mock.MagicMock()
     mock_service_config.command = mock.sentinel.COMMAND
     mock_async_reader = mock.MagicMock()
+    mock_async_reader.queue_ = queue.Queue()
     mock_provide_async_reader = mock.MagicMock(return_value=mock_async_reader)
     mock_process = mock.MagicMock()
 
-    with mock.patch('jep.frontend.subprocess') as mock_subprocess_module:
-        mock_subprocess_module.Popen = mock.MagicMock(return_value=mock_process)
-        connection = BackendConnection(mock_service_config, [], mock.sentinel.SERIALIZER, mock_provide_async_reader)
-        connection.connect()
+    mock_datetime_module.datetime.now = mock.MagicMock()
+    mock_socket_module.create_connection = mock.MagicMock()
 
-        # process and reader thread were started and state is adapted:
-        assert mock_subprocess_module.Popen.call_args[0][0] is mock.sentinel.COMMAND
-        mock_async_reader.start.assert_called_once()
-        assert connection.state is State.Connecting
-        assert connection._process is mock_process
+    mock_subprocess_module.Popen = mock.MagicMock(return_value=mock_process)
+    connection = BackendConnection(mock_service_config, [], mock.sentinel.SERIALIZER, mock_provide_async_reader)
+    connection.connect()
 
-        # no more actions if called again:
-        mock_subprocess_module.Popen.reset_mock()
-        mock_provide_async_reader.reset_mock()
-        connection.connect()
-        assert not mock_subprocess_module.Popen.called
-        assert not mock_provide_async_reader.called
-        assert connection._process is mock_process
+    # process and reader thread were started and state is adapted:
+    assert mock_subprocess_module.Popen.call_args[0][0] is mock.sentinel.COMMAND
+    mock_async_reader.start.assert_called_once()
+    assert connection.state is State.Connecting
+    assert connection._process is mock_process
+
+    # no more actions if called again:
+    mock_subprocess_module.Popen.reset_mock()
+    mock_provide_async_reader.reset_mock()
+    connection.connect()
+    assert not mock_subprocess_module.Popen.called
+    assert not mock_provide_async_reader.called
+    assert connection._process is mock_process
+
+    # run state methods during "connected":
+    mock_async_reader.queue_.put('Nothing special to say.')
+    mock_async_reader.queue_.put('This is the JEP service, listening on port 4711. Yes really!')
+    mock_datetime_module.datetime.now.return_value = datetime.datetime.now()
+    connection.run(datetime.timedelta(seconds=1), 1)
+
+    # connection must have been created to port announced before:
+    assert mock_socket_module.create_connection.called
+    assert mock_socket_module.create_connection.call_args[0][0] == ('localhost', 4711)
+    assert connection.state is State.Connected
