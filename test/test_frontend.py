@@ -2,7 +2,7 @@ import os
 import queue
 from unittest import mock
 import datetime
-from jep.frontend import Frontend, State, BackendConnection
+from jep.frontend import Frontend, State, BackendConnection, TIMEOUT_BACKEND_STARTUP
 
 
 def setup_function(function):
@@ -187,17 +187,17 @@ def prepare_connecting_mocks(mock_datetime_module, mock_socket_module, mock_subp
     return mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config
 
 
-def time_consuming_connector_state_dispatch(connector, delay_sec, mock_datetime_module):
+def decorate_connection_state_dispatch(connection, delay_sec, mock_datetime_module):
     """Each dispatch of connector state takes delay_sec seconds of virtual time."""
 
-    original_dispatch = connector._dispatch
+    original_dispatch = connection._dispatch
 
     def _dispatch(*args):
         now = mock_datetime_module.datetime.now.return_value
         original_dispatch(*args)
         mock_datetime_module.datetime.now.return_value = now + datetime.timedelta(seconds=delay_sec)
 
-    connector._dispatch = _dispatch
+    connection._dispatch = _dispatch
 
 
 @mock.patch('jep.frontend.subprocess')
@@ -230,7 +230,7 @@ def test_backend_connection_connect(mock_datetime_module, mock_socket_module, mo
     mock_async_reader.queue_.put('This is the JEP service, listening on port 4711. Yes really!')
 
     # single step as allowed duration is less than time spent in call:
-    time_consuming_connector_state_dispatch(connection, 0.6, mock_datetime_module)
+    decorate_connection_state_dispatch(connection, 0.6, mock_datetime_module)
     connection.run(datetime.timedelta(seconds=0.5))
 
     # connection must have been created to port announced before:
@@ -254,7 +254,20 @@ def test_backend_connection_connect_no_port_announcement(mock_datetime_module, m
     mock_async_reader.queue_.put('Nothing special to say.')
     mock_async_reader.queue_.put('No port announcement whatsoever.')
 
-    # single step as allowed duration is less than time spent in call above:
-    time_consuming_connector_state_dispatch(connection, 0.1, mock_datetime_module)
-    connection.run(datetime.timedelta(seconds=0.5))
+    assert TIMEOUT_BACKEND_STARTUP > datetime.timedelta(seconds=0)
+    decorate_connection_state_dispatch(connection, 1, mock_datetime_module)
+
+    # nothing happens within allowed timeout period:
+    connection.run(TIMEOUT_BACKEND_STARTUP)
+    assert connection.state is State.Connecting
+
+    # rollback of connection after timeout has expired:
+    connection.run(datetime.timedelta(seconds=2))
+    assert connection.state is State.Disconnected
+
+    mock_process.kill.assert_called_once()
+    mock_async_reader.join.assert_called_once()
+    assert not connection._process
+    assert not connection._process_output_reader
+
 
