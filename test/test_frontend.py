@@ -2,7 +2,7 @@ import os
 import queue
 from unittest import mock
 import datetime
-from jep.frontend import Frontend, State, BackendConnection, TIMEOUT_BACKEND_STARTUP
+from jep.frontend import Frontend, State, BackendConnection, TIMEOUT_BACKEND_STARTUP, TIMEOUT_BACKEND_SHUTDOWN
 from jep.schema import Shutdown
 
 
@@ -334,12 +334,8 @@ def test_backend_connection_connect_connection_exception(mock_time_module, mock_
     assert not connection._process_output_reader
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.datetime')
-def test_backend_connected_disconnect(mock_datetime_module, mock_socket_module, mock_subprocess_module):
+def prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module):
     now = datetime.datetime.now()
-
     mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
                                                                                                                mock_subprocess_module, now)
     mock_serializer = mock.MagicMock()
@@ -352,6 +348,14 @@ def test_backend_connected_disconnect(mock_datetime_module, mock_socket_module, 
     decorate_connection_state_dispatch(connection, 0.5, mock_datetime_module)
     connection.run(datetime.timedelta(seconds=0.4))
     assert connection.state is State.Connected
+    return connection, mock_process, mock_serializer, mock_socket
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.datetime')
+def test_backend_connected_disconnect_backend_shutdown_ok(mock_datetime_module, mock_socket_module, mock_subprocess_module):
+    connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
     connection.disconnect()
 
@@ -364,5 +368,29 @@ def test_backend_connected_disconnect(mock_datetime_module, mock_socket_module, 
     connection.run(datetime.timedelta(seconds=0.4))
 
     assert connection.state is State.Disconnected
+    assert not connection._process
+    assert not connection._process_output_reader
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.datetime')
+@mock.patch('jep.frontend.time')
+def test_backend_connected_disconnect_backend_shutdown_timeout(mock_time_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
+    connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
+
+    connection.disconnect()
+    assert TIMEOUT_BACKEND_SHUTDOWN > datetime.timedelta(seconds=0)
+
+    # run to wait for backend to shut down gracefully, but it won't:
+    mock_process.poll = mock.MagicMock(return_value=None)
+    connection.run(TIMEOUT_BACKEND_SHUTDOWN)
+    assert connection.state is State.Disconnecting
+
+    # run a bit longer and get timeout reaction:
+    connection.run(datetime.timedelta(seconds=1))
+
+    assert connection.state is State.Disconnected
+    mock_socket.close.assert_called_once()
+    assert not connection._socket
     assert not connection._process
     assert not connection._process_output_reader
