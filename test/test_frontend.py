@@ -402,8 +402,7 @@ def test_backend_connected_disconnect_backend_shutdown_timeout(mock_time_module,
 @mock.patch('jep.frontend.socket')
 @mock.patch('jep.frontend.select')
 @mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.time')
-def test_backend_connected_receive_no_data_until_timeout(mock_time_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+def test_backend_connected_receive_no_data_until_alive_timeout(mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
     # prepare no data ready for reception:
@@ -426,14 +425,13 @@ def test_backend_connected_receive_no_data_until_timeout(mock_time_module, mock_
 @mock.patch('jep.frontend.socket')
 @mock.patch('jep.frontend.select')
 @mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.time')
-def test_backend_connected_receive_data(mock_time_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+def test_backend_connected_receive_data(mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
     # prepare data ready for reception:
     mock_select_module.select = mock.MagicMock(return_value=([mock_socket], [], []))
     mock_socket.recv = mock.MagicMock(return_value=mock.sentinel.SERIALIZED)
-    mock_serializer.__iter__=mock.Mock(return_value=iter([BackendAlive()]))
+    mock_serializer.__iter__ = mock.Mock(return_value=iter([BackendAlive()]))
 
     mock_listener = mock.MagicMock()
     connection.listeners.append(mock_listener)
@@ -442,12 +440,12 @@ def test_backend_connected_receive_data(mock_time_module, mock_datetime_module, 
     assert connection.state is State.Connected
     assert mock_listener.on_backend_alive.called
 
+
 @mock.patch('jep.frontend.subprocess')
 @mock.patch('jep.frontend.socket')
 @mock.patch('jep.frontend.select')
 @mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.time')
-def test_backend_connected_receive_data_resets_alive_timeout(mock_time_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+def test_backend_connected_receive_data_resets_alive_timeout(mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
     # prepare no data ready for reception:
@@ -459,7 +457,39 @@ def test_backend_connected_receive_data_resets_alive_timeout(mock_time_module, m
     # prepare data ready for reception:
     mock_select_module.select = mock.MagicMock(return_value=([mock_socket], [], []))
     mock_socket.recv = mock.MagicMock(return_value=mock.sentinel.SERIALIZED)
-    mock_serializer.__iter__=mock.Mock(return_value=iter([BackendAlive()]))
+    mock_serializer.__iter__ = mock.Mock(return_value=iter([BackendAlive()]))
 
     connection.run(TIMEOUT_LAST_MESSAGE)
     assert connection.state is State.Connected
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.select')
+@mock.patch('jep.frontend.datetime')
+@mock.patch('jep.frontend.time')
+def test_backend_connected_receive_data_none(mock_time_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+    connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
+
+    # prepare None data ready for reception:
+    mock_select_module.select = mock.MagicMock(return_value=([mock_socket], [], []))
+    mock_socket.recv = mock.MagicMock(return_value=None)
+
+    connection.run(datetime.timedelta(seconds=2))
+    assert connection.state is State.Disconnected
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.select')
+@mock.patch('jep.frontend.datetime')
+@mock.patch('jep.frontend.time')
+def test_backend_connected_receive_data_exception(mock_time_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+    connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
+
+    # prepare None data ready for reception:
+    mock_select_module.select = mock.MagicMock(return_value=([mock_socket], [], []))
+    mock_socket.recv = mock.MagicMock(side_effect=ConnectionResetError)
+
+    connection.run(datetime.timedelta(seconds=2))
+    assert connection.state is State.Disconnected
