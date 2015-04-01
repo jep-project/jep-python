@@ -451,7 +451,6 @@ def test_backend_connected_receive_data_resets_alive_timeout(mock_time_module, m
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
     # prepare no data ready for reception:
-    # prepare no data ready for reception:
     mock_select_module.select = mock.MagicMock(return_value=([], [], []))
 
     connection.run(TIMEOUT_LAST_MESSAGE)
