@@ -301,3 +301,32 @@ def test_backend_connection_connect_connection_none(mock_time_module, mock_datet
     assert not connection._process_output_reader
 
 
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.datetime')
+@mock.patch('jep.frontend.time')
+def test_backend_connection_connect_connection_exception(mock_time_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
+    now = datetime.datetime.now()
+    mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
+                                                                                                               mock_subprocess_module, now)
+
+    connection = BackendConnection(mock_service_config, [], mock.sentinel.SERIALIZER, mock_provide_async_reader)
+    connection.connect()
+
+    # run state methods during "connected":
+    mock_async_reader.queue_.put('This is the JEP service, listening on port 4711.')
+
+    assert TIMEOUT_BACKEND_STARTUP > datetime.timedelta(seconds=0)
+    decorate_connection_state_dispatch(connection, 1, mock_datetime_module)
+
+    # fail connection return value:
+    mock_socket_module.create_connection = mock.MagicMock(side_effect=NotImplementedError)
+
+    # nothing happens within allowed timeout period:
+    connection.run(datetime.timedelta(seconds=2))
+    assert connection.state is State.Disconnected
+
+    mock_process.kill.assert_called_once()
+    mock_async_reader.join.assert_called_once()
+    assert not connection._process
+    assert not connection._process_output_reader
