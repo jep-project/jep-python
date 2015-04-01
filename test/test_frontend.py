@@ -3,6 +3,7 @@ import queue
 from unittest import mock
 import datetime
 from jep.frontend import Frontend, State, BackendConnection, TIMEOUT_BACKEND_STARTUP
+from jep.schema import Shutdown
 
 
 def setup_function(function):
@@ -270,6 +271,7 @@ def test_backend_connection_connect_no_port_announcement(mock_datetime_module, m
     assert not connection._process
     assert not connection._process_output_reader
 
+
 @mock.patch('jep.frontend.subprocess')
 @mock.patch('jep.frontend.socket')
 @mock.patch('jep.frontend.datetime')
@@ -328,5 +330,39 @@ def test_backend_connection_connect_connection_exception(mock_time_module, mock_
 
     mock_process.kill.assert_called_once()
     mock_async_reader.join.assert_called_once()
+    assert not connection._process
+    assert not connection._process_output_reader
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.datetime')
+def test_backend_connected_disconnect(mock_datetime_module, mock_socket_module, mock_subprocess_module):
+    now = datetime.datetime.now()
+
+    mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
+                                                                                                               mock_subprocess_module, now)
+    mock_serializer = mock.MagicMock()
+    mock_serializer.serialize = mock.MagicMock(return_value=mock.sentinel.SERIALIZED_SHUTDOWN)
+    connection = BackendConnection(mock_service_config, [], mock_serializer, mock_provide_async_reader)
+    connection.connect()
+    mock_async_reader.queue_.put('This is the JEP service, listening on port 4711')
+    mock_socket = mock.MagicMock()
+    mock_socket_module.create_connection.return_value = mock_socket
+    decorate_connection_state_dispatch(connection, 0.5, mock_datetime_module)
+    connection.run(datetime.timedelta(seconds=0.4))
+    assert connection.state is State.Connected
+
+    connection.disconnect()
+
+    # frontend tried to send shutdown to connected backend:
+    assert isinstance(mock_serializer.serialize.call_args[0][0], Shutdown)
+    mock_socket.send.assert_called_once_with(mock.sentinel.SERIALIZED_SHUTDOWN)
+
+    # run to wait for backend to shut down gracefully:
+    mock_process.poll = mock.MagicMock(return_value=0)
+    connection.run(datetime.timedelta(seconds=0.4))
+
+    assert connection.state is State.Disconnected
     assert not connection._process
     assert not connection._process_output_reader
