@@ -202,9 +202,12 @@ class BackendConnection:
     def _connect(self, port, duration):
         try:
             self._socket = socket.create_connection(('localhost', port), duration.total_seconds())
-
-            self._state_timer_reset = datetime.datetime.now()
-            self.state = State.Connected
+            if self._socket:
+                self._state_timer_reset = datetime.datetime.now()
+                self.state = State.Connected
+            else:
+                _logger.warning('Could not connect to backend at port %d within %.2f seconds (socket is None).' % (port, duration.total_seconds()))
+                self._cleanup(duration)
         except Exception as e:
             _logger.warning('Could not connect to backend at port %d within %.2f seconds.' % (port, duration.total_seconds()))
             self._socket = None
