@@ -174,6 +174,20 @@ def test_backend_connection_send_message_send_failed():
     connection.send_message(mock.sentinel.MESSAGE)
 
 
+def spend_time(mocked_function, now, duration_sec, mock_datetime_module):
+    """Helper to spend certain amount of virtual time when mocked function is called."""
+
+    time_after_call = now + datetime.timedelta(seconds=duration_sec)
+    original_mock_return_value = mocked_function.return_value
+
+    def set_mocked_now(*args):
+        mock_datetime_module.datetime.now.return_value = time_after_call
+        return original_mock_return_value
+
+    mocked_function.side_effect = set_mocked_now
+    return time_after_call
+
+
 @mock.patch('jep.frontend.subprocess')
 @mock.patch('jep.frontend.socket')
 @mock.patch('jep.frontend.datetime')
@@ -209,8 +223,13 @@ def test_backend_connection_connect(mock_datetime_module, mock_socket_module, mo
     # run state methods during "connected":
     mock_async_reader.queue_.put('Nothing special to say.')
     mock_async_reader.queue_.put('This is the JEP service, listening on port 4711. Yes really!')
-    mock_datetime_module.datetime.now.return_value = datetime.datetime.now()
-    connection.run(datetime.timedelta(seconds=1), 1)
+
+    now = datetime.datetime.now()
+    mock_datetime_module.datetime.now.return_value = now
+    after = spend_time(mock_socket_module.create_connection, now, 1, mock_datetime_module)
+
+    # single step as allowed duration is less than time spent in call above:
+    connection.run(datetime.timedelta(seconds=0.5))
 
     # connection must have been created to port announced before:
     assert mock_socket_module.create_connection.called
