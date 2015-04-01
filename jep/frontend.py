@@ -97,7 +97,7 @@ class BackendConnection:
         self._process_output_reader = None
         self._socket = None
         self._state_timer_reset = None
-        self._state_dispatch = {
+        self._state_handler = {
             State.Connecting: self._run_connecting,
             State.Connected: self._run_connected,
             State.Disconnecting: self._run_disconnecting,
@@ -130,8 +130,12 @@ class BackendConnection:
         endtime = now + duration
 
         while now < endtime:
-            self._state_dispatch[self.state](endtime - now)
+            self._dispatch(endtime - now)
             now = datetime.datetime.now()
+
+    def _dispatch(self, duration):
+        """State dispatch, extracted out for testability."""
+        self._state_handler[self.state](duration)
 
     def send_message(self, message):
         if self.state is State.Connected:

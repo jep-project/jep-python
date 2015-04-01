@@ -174,35 +174,40 @@ def test_backend_connection_send_message_send_failed():
     connection.send_message(mock.sentinel.MESSAGE)
 
 
-def spend_time(mocked_function, now, duration_sec, mock_datetime_module):
-    """Helper to spend certain amount of virtual time when mocked function is called."""
-
-    time_after_call = now + datetime.timedelta(seconds=duration_sec)
-    original_mock_return_value = mocked_function.return_value
-
-    def set_mocked_now(*args):
-        mock_datetime_module.datetime.now.return_value = time_after_call
-        return original_mock_return_value
-
-    mocked_function.side_effect = set_mocked_now
-    return time_after_call
-
-
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.datetime')
-def test_backend_connection_connect(mock_datetime_module, mock_socket_module, mock_subprocess_module):
+def prepare_connecting_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module, now):
     mock_service_config = mock.MagicMock()
     mock_service_config.command = mock.sentinel.COMMAND
     mock_async_reader = mock.MagicMock()
     mock_async_reader.queue_ = queue.Queue()
     mock_provide_async_reader = mock.MagicMock(return_value=mock_async_reader)
     mock_process = mock.MagicMock()
-
-    mock_datetime_module.datetime.now = mock.MagicMock()
+    mock_datetime_module.datetime.now = mock.MagicMock(return_value=now)
     mock_socket_module.create_connection = mock.MagicMock()
-
     mock_subprocess_module.Popen = mock.MagicMock(return_value=mock_process)
+    return mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config
+
+
+def time_consuming_connector_state_dispatch(connector, delay_sec, mock_datetime_module):
+    """Each dispatch of connector state takes delay_sec seconds of virtual time."""
+
+    original_dispatch = connector._dispatch
+
+    def _dispatch(*args):
+        now = mock_datetime_module.datetime.now.return_value
+        original_dispatch(*args)
+        mock_datetime_module.datetime.now.return_value = now + datetime.timedelta(seconds=delay_sec)
+
+    connector._dispatch = _dispatch
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.datetime')
+def test_backend_connection_connect(mock_datetime_module, mock_socket_module, mock_subprocess_module):
+    now = datetime.datetime.now()
+
+    mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
+                                                                                                               mock_subprocess_module, now)
     connection = BackendConnection(mock_service_config, [], mock.sentinel.SERIALIZER, mock_provide_async_reader)
     connection.connect()
 
@@ -224,14 +229,32 @@ def test_backend_connection_connect(mock_datetime_module, mock_socket_module, mo
     mock_async_reader.queue_.put('Nothing special to say.')
     mock_async_reader.queue_.put('This is the JEP service, listening on port 4711. Yes really!')
 
-    now = datetime.datetime.now()
-    mock_datetime_module.datetime.now.return_value = now
-    after = spend_time(mock_socket_module.create_connection, now, 1, mock_datetime_module)
-
-    # single step as allowed duration is less than time spent in call above:
+    # single step as allowed duration is less than time spent in call:
+    time_consuming_connector_state_dispatch(connection, 0.6, mock_datetime_module)
     connection.run(datetime.timedelta(seconds=0.5))
 
     # connection must have been created to port announced before:
     assert mock_socket_module.create_connection.called
     assert mock_socket_module.create_connection.call_args[0][0] == ('localhost', 4711)
     assert connection.state is State.Connected
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.datetime')
+def test_backend_connection_connect_no_port_announcement(mock_datetime_module, mock_socket_module, mock_subprocess_module):
+    now = datetime.datetime.now()
+    mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
+                                                                                                               mock_subprocess_module, now)
+
+    connection = BackendConnection(mock_service_config, [], mock.sentinel.SERIALIZER, mock_provide_async_reader)
+    connection.connect()
+
+    # run state methods during "connected":
+    mock_async_reader.queue_.put('Nothing special to say.')
+    mock_async_reader.queue_.put('No port announcement whatsoever.')
+
+    # single step as allowed duration is less than time spent in call above:
+    time_consuming_connector_state_dispatch(connection, 0.1, mock_datetime_module)
+    connection.run(datetime.timedelta(seconds=0.5))
+
