@@ -389,8 +389,9 @@ def test_backend_connected_disconnect_backend_shutdown_timeout(mock_time_module,
     # run a bit longer and get timeout reaction:
     connection.run(datetime.timedelta(seconds=1))
 
-    assert connection.state is State.Disconnected
     mock_socket.close.assert_called_once()
+    assert connection.state is State.Disconnected
     assert not connection._socket
     assert not connection._process
     assert not connection._process_output_reader
+
