@@ -50,7 +50,7 @@ class Backend():
         #: Cache for BackendAlive message in serialized form.
         self.BACKEND_ALIVE_DATA = MessageSerializer().serialize(BackendAlive())
         #: Map of socket to frontend descriptor.
-        self.frontend_by_socket = dict()
+        self.connection = dict()
 
     @property
     def serversocket(self):
@@ -68,7 +68,7 @@ class Backend():
 
         assert self.state is State.Stopped
         assert not self.sockets, 'Unexpected active sockets after shutdown.'
-        assert not self.frontend_by_socket, 'Unexpected frontend connectors after shutdown.'
+        assert not self.connection, 'Unexpected frontend connectors after shutdown.'
 
     def _listen(self):
         """Set up server socket to listen for incoming connections."""
@@ -112,7 +112,7 @@ class Backend():
         """Blocking accept of incoming connection."""
         clientsocket, *_ = self.serversocket.accept()
         self.sockets.append(clientsocket)
-        self.frontend_by_socket[clientsocket] = FrontendConnection(self, clientsocket)
+        self.connection[clientsocket] = FrontendConnection(self, clientsocket)
         _logger.info('Frontend connected.')
 
     def _receive(self, clientsocket):
@@ -125,7 +125,7 @@ class Backend():
 
         if data:
             _logger.debug('Received data: %s' % data)
-            frontend_connector = self.frontend_by_socket[clientsocket]
+            frontend_connector = self.connection[clientsocket]
             frontend_connector.ts_last_data_received = datetime.datetime.now()
             frontend_connector.serializer.enque_data(data)
 
@@ -144,7 +144,7 @@ class Backend():
     def _close(self, sock):
         sock.close()
         self.sockets.remove(sock)
-        self.frontend_by_socket.pop(sock, None)
+        self.connection.pop(sock, None)
 
     def _on_message_received(self, msg):
         """Handler for service level messages."""
@@ -169,16 +169,16 @@ class Backend():
 
             # check timeouts for each connected frontend:
             for sock in self.sockets[1:].copy():
-                if now - self.frontend_by_socket[sock].ts_last_data_received >= TIMEOUT_LAST_MESSAGE:
+                if now - self.connection[sock].ts_last_data_received >= TIMEOUT_LAST_MESSAGE:
                     _logger.info('Disconnecting frontend after timeout.')
                     self._close(sock)
 
-    def send_message(self, context, msg):
+    def send_message(self, connection, msg):
         """Message used by MessageContext only to delegate send."""
         _logger.debug('Sending message: %s.' % msg)
-        serialized = self.frontend_by_socket[context.sock].serializer.serialize(msg)
+        serialized = self.connection[connection.sock].serializer.serialize(msg)
         _logger.debug('Sending data: %s.' % serialized)
-        self._send_data(context.sock, serialized)
+        self._send_data(connection.sock, serialized)
 
     @classmethod
     def _send_data(cls, sock, data):

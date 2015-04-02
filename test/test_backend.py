@@ -66,7 +66,7 @@ def test_receive_shutdown():
     mock_listener1 = mock.MagicMock()
     mock_listener2 = mock.MagicMock()
     backend = Backend([mock_listener1, mock_listener2])
-    backend.frontend_by_socket[mock_clientsocket] = FrontendConnection(backend, mock_clientsocket)
+    backend.connection[mock_clientsocket] = FrontendConnection(backend, mock_clientsocket)
 
     assert backend.state is not State.ShutdownPending
     backend._receive(mock_clientsocket)
@@ -83,7 +83,7 @@ def test_receive_empty():
     mock_clientsocket = mock.MagicMock()
     mock_clientsocket.recv = mock.MagicMock(return_value=None)
     backend = Backend()
-    backend.frontend_by_socket[mock_clientsocket] = FrontendConnection(backend, mock_clientsocket)
+    backend.connection[mock_clientsocket] = FrontendConnection(backend, mock_clientsocket)
     backend.sockets.append(mock_clientsocket)
 
     backend._receive(mock_clientsocket)
@@ -95,7 +95,7 @@ def test_message_context():
     mock_clientsocket.recv = mock.MagicMock(return_value=MessageSerializer().serialize(Shutdown()))
     mock_listener = mock.MagicMock()
     backend = Backend([mock_listener])
-    backend.frontend_by_socket[mock_clientsocket] = FrontendConnection(backend, mock_clientsocket)
+    backend.connection[mock_clientsocket] = FrontendConnection(backend, mock_clientsocket)
 
     backend._receive(mock_clientsocket)
     message_context = mock_listener.on_shutdown.call_args[0][0]
@@ -117,8 +117,8 @@ def test_backend_alive_cycle(mock_datetime_mod):
     mock_clientsocket2 = mock.MagicMock()
     backend = Backend()
     backend.sockets = [mock.sentinel.SERVER_SOCKET, mock_clientsocket1, mock_clientsocket2]
-    backend.frontend_by_socket[mock_clientsocket1] = FrontendConnection(backend, mock_clientsocket1)
-    backend.frontend_by_socket[mock_clientsocket2] = FrontendConnection(backend, mock_clientsocket2)
+    backend.connection[mock_clientsocket1] = FrontendConnection(backend, mock_clientsocket1)
+    backend.connection[mock_clientsocket2] = FrontendConnection(backend, mock_clientsocket2)
 
     # cycle must send alive for all newly connected frontends:
     backend._cyclic()
@@ -150,8 +150,8 @@ def test_frontend_timeout(mock_datetime_mod):
     mock_clientsocket2 = mock.MagicMock()
     backend = Backend()
     backend.sockets = [mock.sentinel.SERVER_SOCKET, mock_clientsocket1, mock_clientsocket2]
-    backend.frontend_by_socket[mock_clientsocket1] = FrontendConnection(backend, mock_clientsocket1)
-    backend.frontend_by_socket[mock_clientsocket2] = FrontendConnection(backend, mock_clientsocket2)
+    backend.connection[mock_clientsocket1] = FrontendConnection(backend, mock_clientsocket1)
+    backend.connection[mock_clientsocket2] = FrontendConnection(backend, mock_clientsocket2)
 
     assert TIMEOUT_LAST_MESSAGE > datetime.timedelta(0)
 
