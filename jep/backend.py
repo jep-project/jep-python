@@ -112,7 +112,7 @@ class Backend():
         """Blocking accept of incoming connection."""
         clientsocket, *_ = self.serversocket.accept()
         self.sockets.append(clientsocket)
-        self.frontend_by_socket[clientsocket] = FrontendConnector()
+        self.frontend_by_socket[clientsocket] = FrontendConnection(self, clientsocket)
         _logger.info('Frontend connected.')
 
     def _receive(self, clientsocket):
@@ -131,10 +131,9 @@ class Backend():
 
             for msg in frontend_connector.serializer:
                 _logger.debug('Received message: %s' % msg)
-                context = MessageContext(self, clientsocket)
                 for listener in self.listeners:
                     # call listener's message specific handler method (visitor pattern's accept() call):
-                    msg.invoke(listener, context)
+                    msg.invoke(listener, frontend_connector)
 
                 # call internal handler of service level messages:
                 self._on_message_received(msg)
@@ -186,28 +185,22 @@ class Backend():
         sock.send(data)
 
 
-class MessageContext:
-    """Context of a request by frontend message."""
+class FrontendConnection:
+    """Connection to frontend instance."""
 
-    # TODO: MessageContext + FrontendConnector --> FrontendConnection, to better align with frontend design.
-
-    def __init__(self, service, sock):
+    def __init__(self, service, sock, serializer=MessageSerializer()):
+        # Backend instance that created this connection.
         self.service = service
+        # Socket used to talk to frontend.
         self.sock = sock
-
-    def send_message(self, msg):
-        self.service.send_message(self, msg)
-
-
-class FrontendConnector:
-    """Information about a connected frontend."""
-
-    def __init__(self, serializer=MessageSerializer()):
         #: Timestamp of last message received from this frontend (initialized due to accept).
         self.ts_last_data_received = datetime.datetime.now()
 
         #: Serializer used to decode data from frontend.
         self.serializer = serializer
+
+    def send_message(self, msg):
+        self.service.send_message(self, msg)
 
 
 class FrontendListener:
