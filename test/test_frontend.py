@@ -1,4 +1,5 @@
 import os
+from os import path
 import queue
 from unittest import mock
 import datetime
@@ -179,7 +180,7 @@ def test_backend_connection_send_message_send_failed():
 def prepare_connecting_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module, now):
     mock_service_config = mock.MagicMock()
     mock_service_config.command = mock.sentinel.COMMAND
-    mock_service_config.config_file_path = r'd:\somedir\.jep'
+    mock_service_config.config_file_path = path.abspath('somedir/.jep')
     mock_async_reader = mock.MagicMock()
     mock_async_reader.queue_ = queue.Queue()
     mock_provide_async_reader = mock.MagicMock(return_value=mock_async_reader)
@@ -216,7 +217,7 @@ def test_backend_connection_connect(mock_datetime_module, mock_socket_module, mo
 
     # process and reader thread were started and state is adapted:
     assert mock_subprocess_module.Popen.call_args[0][0] is mock.sentinel.COMMAND
-    assert mock_subprocess_module.Popen.call_args[1]['cwd'] == r'd:\somedir'
+    assert mock_subprocess_module.Popen.call_args[1]['cwd'] == path.abspath('somedir')
     mock_async_reader.start.assert_called_once()
     assert connection.state is State.Connecting
     assert connection._process is mock_process
