@@ -112,8 +112,13 @@ class BackendConnection:
 
         # launch backend process and capture its output:
         _logger.debug('Starting backend service: %s' % self.service_config.command)
+        # on Windows prevent console window when being called from GUI process (ignored elsewhere):
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        # default: startupinfo.wShowWindow = subprocess.SW_HIDE
         self._process = subprocess.Popen(self.service_config.command,
                                          cwd=path.dirname(self.service_config.config_file_path),
+                                         startupinfo=startupinfo,
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.STDOUT,
                                          universal_newlines=True)
