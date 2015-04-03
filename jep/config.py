@@ -18,7 +18,7 @@ class ServiceConfig:
     """Represents configuration of a single JEP service."""
 
     def __init__(self, config_file_path, patterns, command, checksum):
-        self.config_file_path = config_file_path
+        self.config_file_path = abspath(config_file_path)
         self.patterns = tuple(patterns)
         self.command = command
         self.checksum = checksum

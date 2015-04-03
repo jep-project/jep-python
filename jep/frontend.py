@@ -7,6 +7,7 @@ import subprocess
 import time
 import select
 import datetime
+from os import path
 
 from jep.async import AsynchronousFileReader
 from jep.config import ServiceConfigProvider, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
@@ -111,7 +112,11 @@ class BackendConnection:
 
         # launch backend process and capture its output:
         _logger.debug('Starting backend service: %s' % self.service_config.command)
-        self._process = subprocess.Popen(self.service_config.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        self._process = subprocess.Popen(self.service_config.command,
+                                         cwd=path.dirname(self.service_config.config_file_path),
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.STDOUT,
+                                         universal_newlines=True)
         self._process_output_reader = self._provide_async_reader(self._process.stdout)
         self._process_output_reader.start()
 
