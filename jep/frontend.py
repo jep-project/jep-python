@@ -187,8 +187,6 @@ class BackendConnection:
         self._read_backend_output()
 
         readable, *_ = select.select([self._socket], [], [], duration.total_seconds())
-        _logger.debug('Readable sockets: %d' % len(readable))
-
         if readable:
             self._receive()
 

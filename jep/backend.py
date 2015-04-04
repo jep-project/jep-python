@@ -93,8 +93,6 @@ class Backend():
 
         while self.state is State.Running:
             readable, *_ = select.select(self.sockets, [], [], TIMEOUT_SELECT_SEC)
-            _logger.debug('Readable sockets: %d' % len(readable))
-
             for sock in readable:
                 if sock is self.serversocket:
                     self._accept()
