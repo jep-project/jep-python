@@ -6,6 +6,7 @@ import socket
 import subprocess
 import time
 import select
+import shlex
 import datetime
 from os import path
 
@@ -120,7 +121,7 @@ class BackendConnection:
         except AttributeError:
             # non-Windows system:
             startupinfo=None
-        self._process = subprocess.Popen(self.service_config.command,
+        self._process = subprocess.Popen(shlex.split(self.service_config.command),
                                          cwd=path.dirname(self.service_config.config_file_path),
                                          startupinfo=startupinfo,
                                          stdout=subprocess.PIPE,

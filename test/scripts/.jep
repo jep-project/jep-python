@@ -1,2 +1,2 @@
 *.mydsl:
-python.exe jep-backend-sample.py
+python jep-backend-sample.py
