@@ -3,6 +3,7 @@ from os import path
 import queue
 from unittest import mock
 import datetime
+import itertools
 from jep.config import TIMEOUT_LAST_MESSAGE
 from jep.frontend import Frontend, State, BackendConnection, TIMEOUT_BACKEND_STARTUP, TIMEOUT_BACKEND_SHUTDOWN
 from jep.schema import Shutdown, BackendAlive
@@ -424,6 +425,10 @@ def test_backend_connected_receive_no_data_until_alive_timeout(mock_datetime_mod
     assert not connection._process_output_reader
 
 
+def iterate_first_and_then(first, then):
+    return itertools.chain([first], itertools.repeat(then))
+
+
 @mock.patch('jep.frontend.subprocess')
 @mock.patch('jep.frontend.socket')
 @mock.patch('jep.frontend.select')
@@ -433,13 +438,14 @@ def test_backend_connected_receive_data(mock_datetime_module, mock_select_module
 
     # prepare data ready for reception:
     mock_select_module.select = mock.MagicMock(return_value=([mock_socket], [], []))
-    mock_socket.recv = mock.MagicMock(return_value=mock.sentinel.SERIALIZED)
+    mock_socket.recv = mock.MagicMock(side_effect=iterate_first_and_then(mock.sentinel.SERIALIZED, BlockingIOError))
     mock_serializer.__iter__ = mock.Mock(return_value=iter([BackendAlive()]))
 
     mock_listener = mock.MagicMock()
     connection.listeners.append(mock_listener)
 
-    connection.run(TIMEOUT_LAST_MESSAGE * 2)
+    # do not run into timeout leading to disconnect:
+    connection.run(TIMEOUT_LAST_MESSAGE / 2)
     assert connection.state is State.Connected
     assert mock_listener.on_backend_alive.called
 
@@ -459,7 +465,7 @@ def test_backend_connected_receive_data_resets_alive_timeout(mock_datetime_modul
 
     # prepare data ready for reception:
     mock_select_module.select = mock.MagicMock(return_value=([mock_socket], [], []))
-    mock_socket.recv = mock.MagicMock(return_value=mock.sentinel.SERIALIZED)
+    mock_socket.recv = mock.MagicMock(side_effect=iterate_first_and_then(mock.sentinel.SERIALIZED, BlockingIOError))
     mock_serializer.__iter__ = mock.Mock(return_value=iter([BackendAlive()]))
 
     connection.run(TIMEOUT_LAST_MESSAGE)

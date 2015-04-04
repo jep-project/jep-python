@@ -62,7 +62,7 @@ def test_bind_and_listen_and_accept_and_disconnect(mock_select_mod, mock_socket_
 
 def test_receive_shutdown():
     mock_clientsocket = mock.MagicMock()
-    mock_clientsocket.recv = mock.MagicMock(return_value=MessageSerializer().serialize(Shutdown()))
+    mock_clientsocket.recv = mock.MagicMock(side_effect=[MessageSerializer().serialize(Shutdown()), BlockingIOError])
     mock_listener1 = mock.MagicMock()
     mock_listener2 = mock.MagicMock()
     backend = Backend([mock_listener1, mock_listener2])
@@ -92,7 +92,7 @@ def test_receive_empty():
 
 def test_message_context():
     mock_clientsocket = mock.MagicMock()
-    mock_clientsocket.recv = mock.MagicMock(return_value=MessageSerializer().serialize(Shutdown()))
+    mock_clientsocket.recv = mock.MagicMock(side_effect=[MessageSerializer().serialize(Shutdown()), BlockingIOError])
     mock_listener = mock.MagicMock()
     backend = Backend([mock_listener])
     backend.connection[mock_clientsocket] = FrontendConnection(backend, mock_clientsocket)
@@ -169,7 +169,7 @@ def test_frontend_timeout(mock_datetime_mod):
     assert not mock_clientsocket2.close.called
 
     # now receive a message from one frontend:
-    mock_clientsocket1.recv = mock.MagicMock(return_value=MessageSerializer().serialize(CompletionRequest('t', 'g', 10)))
+    mock_clientsocket1.recv = mock.MagicMock(side_effect=[MessageSerializer().serialize(CompletionRequest('t', 'g', 10)), BlockingIOError])
     backend._receive(mock_clientsocket1)
 
     now += 0.2 * TIMEOUT_LAST_MESSAGE
