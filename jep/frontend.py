@@ -1,6 +1,7 @@
 """JEP frontend support."""
 import collections
 import logging
+import platform
 import re
 import socket
 import subprocess
@@ -121,7 +122,7 @@ class BackendConnection:
         except AttributeError:
             # non-Windows system:
             startupinfo = None
-        self._process = subprocess.Popen(shlex.split(self.service_config.command),
+        self._process = subprocess.Popen(shlex.split(self.service_config.command, posix=not platform.system() == 'Windows'),
                                          cwd=path.dirname(self.service_config.config_file_path),
                                          startupinfo=startupinfo,
                                          stdout=subprocess.PIPE,
