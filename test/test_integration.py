@@ -52,3 +52,7 @@ def test_frontend_starts_stops_backend():
     ended = datetime.datetime.now()
 
     _logger.info('Frontend executed %d cycles in %.2f seconds.' % (cycles, (ended - started).total_seconds()))
+
+
+if __name__ == '__main__':
+    test_frontend_starts_stops_backend()
