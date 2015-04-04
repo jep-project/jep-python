@@ -111,10 +111,11 @@ class SemanticType(enum.Enum):
 
 
 class CompletionOption(Serializable):
-    def __init__(self, display: str, desc: str=None, semantics: SemanticType=None, extension_id: str=None):
+    def __init__(self, insert: str, desc: str=None, long_desc: str=None, semantics: SemanticType=None, extension_id: str=None):
         super().__init__()
-        self.display = display
+        self.insert = insert
         self.desc = desc
+        self.long_desc = long_desc
         self.semantics = semantics
         self.extension_id = extension_id
 

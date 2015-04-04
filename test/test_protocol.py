@@ -87,8 +87,8 @@ def test_message_serializer_serialize_problem_update(observable_serializer):
 
 
 def test_message_serializer_serialize_completion_response(observable_serializer):
-    msg = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', SemanticType.String, 'theExtId'),
-                                                        CompletionOption('display2', 'thedescription2', SemanticType.Identifier, 'theExtId2')])
+    msg = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', semantics=SemanticType.String, extension_id='theExtId'),
+                                                        CompletionOption('display2', 'thedescription2', semantics=SemanticType.Identifier, extension_id='theExtId2')])
 
     packed = observable_serializer.serialize(msg)
 
@@ -99,8 +99,8 @@ def test_message_serializer_serialize_completion_response(observable_serializer)
         'end': 12,
         'limit_exceeded': True,
         'options': [
-            {'display': 'display', 'desc': 'thedescription', 'semantics': 'String', 'extension_id': 'theExtId'},
-            {'display': 'display2', 'desc': 'thedescription2', 'semantics': 'Identifier', 'extension_id': 'theExtId2'}
+            {'insert': 'display', 'desc': 'thedescription', 'semantics': 'String', 'extension_id': 'theExtId'},
+            {'insert': 'display2', 'desc': 'thedescription2', 'semantics': 'Identifier', 'extension_id': 'theExtId2'}
         ]
     }
     observable_serializer.packer.dumps.assert_called_once_with(expected)
@@ -116,8 +116,8 @@ def test_message_serializer_deserialize_completion_response():
         'end': 12,
         'limit_exceeded': True,
         'options': [
-            {'display': 'display', 'desc': 'thedescription', 'semantics': 'String', 'extension_id': 'theExtId'},
-            {'display': 'display2', 'desc': 'thedescription2', 'semantics': 'Identifier', 'extension_id': 'theExtId2'}
+            {'insert': 'display', 'desc': 'thedescription', 'semantics': 'String', 'extension_id': 'theExtId'},
+            {'insert': 'display2', 'desc': 'thedescription2', 'semantics': 'Identifier', 'extension_id': 'theExtId2'}
         ]
     }
 
@@ -128,8 +128,8 @@ def test_message_serializer_deserialize_completion_response():
 
     msg = serializer.deserialize(packed)
 
-    expected = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', SemanticType.String, 'theExtId'),
-                                                             CompletionOption('display2', 'thedescription2', SemanticType.Identifier, 'theExtId2')])
+    expected = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', semantics=SemanticType.String, extension_id='theExtId'),
+                                                             CompletionOption('display2', 'thedescription2', semantics=SemanticType.Identifier, extension_id='theExtId2')])
 
     # avoid implementation of eq in schema classes, so rely on correct serialization for now:
     assert serializer.serialize(msg) == serializer.serialize(expected)
