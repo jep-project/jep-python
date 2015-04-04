@@ -120,7 +120,7 @@ class BackendConnection:
             # default: startupinfo.wShowWindow = subprocess.SW_HIDE
         except AttributeError:
             # non-Windows system:
-            startupinfo=None
+            startupinfo = None
         self._process = subprocess.Popen(shlex.split(self.service_config.command),
                                          cwd=path.dirname(self.service_config.config_file_path),
                                          startupinfo=startupinfo,
@@ -218,6 +218,7 @@ class BackendConnection:
         try:
             self._socket = socket.create_connection(('localhost', port), duration.total_seconds())
             if self._socket:
+                self._socket.setblocking(0)
                 self._state_timer_reset = datetime.datetime.now()
                 self.state = State.Connected
             else:
@@ -229,28 +230,36 @@ class BackendConnection:
             self._cleanup(duration)
 
     def _receive(self):
-        """Blocking read of backend data."""
-        data = None
+        """Read of backend data."""
+        cycles = 0
         try:
-            data = self._socket.recv(BUFFER_LENGTH)
+            while True:
+                data = self._socket.recv(BUFFER_LENGTH)
+                cycles += 1
+
+                if data:
+                    # any received message resets the timeout:
+                    self._state_timer_reset = datetime.datetime.now()
+
+                    _logger.debug('Received data: %s' % data)
+                    self._serializer.enque_data(data)
+                else:
+                    _logger.info('Socket closed by backend.')
+                    raise ConnectionResetError()
         except ConnectionResetError:
             _logger.warning('Backend closed connection unexpectedly.')
-
-        if data:
-            # any received message resets the timeout:
-            self._state_timer_reset = datetime.datetime.now()
-
-            _logger.debug('Received data: %s' % data)
-            self._serializer.enque_data(data)
-
-            for msg in self._serializer:
-                _logger.debug('Received message: %s' % msg)
-                for listener in self.listeners:
-                    # call listener's message specific handler method (visitor pattern's accept() call):
-                    msg.invoke(listener, self)
-        else:
-            _logger.info('Closing connection to backend due to empty data reception.')
             self._cleanup()
+        except BlockingIOError as e:
+            # leave receive loop for now as no more data is available:
+            pass
+
+        _logger.debug('Read data in %d cycles.' % cycles)
+
+        for msg in self._serializer:
+            _logger.debug('Received message: %s' % msg)
+            for listener in self.listeners:
+                # call listener's message specific handler method (visitor pattern's accept() call):
+                msg.invoke(listener, self)
 
     def _cleanup(self, duration=datetime.timedelta(seconds=0.01)):
         """Internal hard disconnect. Ensures all resources (sockets, processes, threads) are released."""

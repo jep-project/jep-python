@@ -111,35 +111,45 @@ class Backend():
     def _accept(self):
         """Blocking accept of incoming connection."""
         clientsocket, *_ = self.serversocket.accept()
+        clientsocket.setblocking(0)
         self.sockets.append(clientsocket)
         self.connection[clientsocket] = FrontendConnection(self, clientsocket)
         _logger.info('Frontend connected.')
 
     def _receive(self, clientsocket):
-        """Blocking read of client data on given socket."""
-        data = None
+        """Read of client data on given socket."""
+
+        frontend_connector = self.connection[clientsocket]
+        cycles = 0
         try:
-            data = clientsocket.recv(BUFFER_LENGTH)
-        except ConnectionAbortedError as e:
-            _logger.warning('Data reception failed: %s' % e)
+            while True:
+                data = clientsocket.recv(BUFFER_LENGTH)
+                cycles += 1
 
-        if data:
-            _logger.debug('Received data: %s' % data)
-            frontend_connector = self.connection[clientsocket]
-            frontend_connector.ts_last_data_received = datetime.datetime.now()
-            frontend_connector.serializer.enque_data(data)
-
-            for msg in frontend_connector.serializer:
-                _logger.debug('Received message: %s' % msg)
-                for listener in self.listeners:
-                    # call listener's message specific handler method (visitor pattern's accept() call):
-                    msg.invoke(listener, frontend_connector)
-
-                # call internal handler of service level messages:
-                self._on_message_received(msg)
-        else:
-            _logger.info('Closing connection to frontend due to empty data reception.')
+                if data:
+                    _logger.debug('Received data: %s' % data)
+                    frontend_connector.ts_last_data_received = datetime.datetime.now()
+                    frontend_connector.serializer.enque_data(data)
+                else:
+                    _logger.info('Socket closed by frontend.')
+                    raise ConnectionAbortedError()
+        except ConnectionAbortedError:
+            _logger.info('Closing connection to frontend due to closed socket.')
             self._close(clientsocket)
+        except BlockingIOError as e:
+            # leave receive loop for now as no more data is available:
+            pass
+
+        _logger.debug('Read data in %d cycles.' % cycles)
+
+        for msg in frontend_connector.serializer:
+            _logger.debug('Received message: %s' % msg)
+            for listener in self.listeners:
+                # call listener's message specific handler method (visitor pattern's accept() call):
+                msg.invoke(listener, frontend_connector)
+
+            # call internal handler of service level messages:
+            self._on_message_received(msg)
 
     def _close(self, sock):
         sock.close()
