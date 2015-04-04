@@ -7,7 +7,7 @@ from os.path import splitext, abspath, exists, dirname, join, basename
 import datetime
 
 #: Length of socket reception buffer.
-BUFFER_LENGTH = 4096
+BUFFER_LENGTH = 65536
 
 #: Number of seconds between select timeouts.
 TIMEOUT_SELECT_SEC = 0.5
