@@ -79,13 +79,15 @@ def serialize_to_builtins(o):
     return serialized
 
 
-def deserialize_from_builtins(serialized, datatype, itemtype=None):
+def deserialize_from_builtins(serialized, datatype, itemtype=None, name=None):
     """Instantiation of data type from built-in serialized form."""
 
     if serialized is None:
         instantiated = None
+    elif serialized is inspect._empty:
+        raise TypeError("While trying to deserialize type %s, required attribute %s was not in stream." % (datatype, name))
     elif isinstance(datatype, SerializableMeta):
-        ctor_arguments = {attrib.name: deserialize_from_builtins(serialized.get(attrib.name, attrib.default), attrib.datatype, attrib.itemtype)
+        ctor_arguments = {attrib.name: deserialize_from_builtins(serialized.get(attrib.name, attrib.default), attrib.datatype, attrib.itemtype, attrib.name)
                           for attrib in datatype.serialized_attribs.values()}
         instantiated = datatype(**ctor_arguments)
     elif datatype is list and itemtype:

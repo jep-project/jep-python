@@ -3,12 +3,42 @@ try:
 except ImportError:
     from jep.contrib import umsgpack
 
+import logging.config
 from unittest import mock
+import sys
 import pytest
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
-    Severity, FileProblems, CompletionInvocation
+    Severity, FileProblems, CompletionInvocation, Message
 
+def setup_function(function):
+    logging.config.dictConfig({
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'simple': {
+                'format': '%(asctime)s %(name)s %(levelname)s: %(message)s'
+            }
+        },
+        'handlers': {
+            'console': {
+                'stream': sys.stdout,
+                'class': 'logging.StreamHandler',
+                'formatter': 'simple'
+            }
+        },
+        'loggers': {
+            'jep': {
+                'handlers': ['console'],
+                'propagate': False,
+                'level': 'DEBUG'
+            }
+        },
+        'root': {
+            'level': 'WARNING',
+            'handlers': ['console']
+        }
+    })
 
 def test_message_serializer_serialize_chain():
     mock_packer = mock.MagicMock()
@@ -71,24 +101,24 @@ def test_message_serializer_serialize_completion_request(observable_serializer):
 
 def test_message_serializer_serialize_completion_invocation(observable_serializer):
     packed = observable_serializer.serialize(CompletionInvocation('id'))
-    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='CompletionInvocation', extension_id='id'))
+    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='CompletionInvocation', extensionId='id'))
     # TODO assert packed==...
 
 
 def test_message_serializer_serialize_problem_update(observable_serializer):
-    msg = ProblemUpdate([FileProblems('thefile', [Problem('themsg', Severity.Info, 99)], 50, 10, 20)], True)
+    msg = ProblemUpdate([FileProblems('thefile', [Problem('themsg', Severity.info, 99)], 50, 10, 20)], True)
     packed = observable_serializer.serialize(msg)
-    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='ProblemUpdate', partial=True, file_problems=[
+    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='ProblemUpdate', partial=True, fileProblems=[
         dict(file='thefile', total=50, start=10, end=20, problems=[
-            dict(message='themsg', severity='Info', line=99)
+            dict(message='themsg', severity='info', line=99)
         ])
     ]))
     # TODO assert packed==...
 
 
 def test_message_serializer_serialize_completion_response(observable_serializer):
-    msg = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', semantics=SemanticType.String, extension_id='theExtId'),
-                                                        CompletionOption('display2', 'thedescription2', semantics=SemanticType.Identifier, extension_id='theExtId2')])
+    msg = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', semantics=SemanticType.string, extensionId='theExtId'),
+                                                        CompletionOption('display2', 'thedescription2', semantics=SemanticType.identifier, extensionId='theExtId2')])
 
     packed = observable_serializer.serialize(msg)
 
@@ -97,10 +127,10 @@ def test_message_serializer_serialize_completion_response(observable_serializer)
         'token': 'thetoken',
         'start': 11,
         'end': 12,
-        'limit_exceeded': True,
+        'limitExceeded': True,
         'options': [
-            {'insert': 'display', 'desc': 'thedescription', 'semantics': 'String', 'extension_id': 'theExtId'},
-            {'insert': 'display2', 'desc': 'thedescription2', 'semantics': 'Identifier', 'extension_id': 'theExtId2'}
+            {'insert': 'display', 'desc': 'thedescription', 'semantics': 'string', 'extensionId': 'theExtId'},
+            {'insert': 'display2', 'desc': 'thedescription2', 'semantics': 'identifier', 'extensionId': 'theExtId2'}
         ]
     }
     observable_serializer.packer.dumps.assert_called_once_with(expected)
@@ -114,10 +144,10 @@ def test_message_serializer_deserialize_completion_response():
         'token': 'thetoken',
         'start': 11,
         'end': 12,
-        'limit_exceeded': True,
+        'limitExceeded': True,
         'options': [
-            {'insert': 'display', 'desc': 'thedescription', 'semantics': 'String', 'extension_id': 'theExtId'},
-            {'insert': 'display2', 'desc': 'thedescription2', 'semantics': 'Identifier', 'extension_id': 'theExtId2'}
+            {'insert': 'display', 'desc': 'thedescription', 'semantics': 'string', 'extensionId': 'theExtId'},
+            {'insert': 'display2', 'desc': 'thedescription2', 'semantics': 'identifier', 'extensionId': 'theExtId2'}
         ]
     }
 
@@ -128,8 +158,8 @@ def test_message_serializer_deserialize_completion_response():
 
     msg = serializer.deserialize(packed)
 
-    expected = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', semantics=SemanticType.String, extension_id='theExtId'),
-                                                             CompletionOption('display2', 'thedescription2', semantics=SemanticType.Identifier, extension_id='theExtId2')])
+    expected = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', semantics=SemanticType.string, extensionId='theExtId'),
+                                                             CompletionOption('display2', 'thedescription2', semantics=SemanticType.identifier, extensionId='theExtId2')])
 
     # avoid implementation of eq in schema classes, so rely on correct serialization for now:
     assert serializer.serialize(msg) == serializer.serialize(expected)
@@ -152,13 +182,13 @@ def test_message_serializer_enqueue_dequeue():
     assert msg1.token == 'token'
     assert msg1.start == 1
     assert msg1.end == 2
-    assert not msg1.limit_exceeded
+    assert not msg1.limitExceeded
 
     assert isinstance(msg2, CompletionResponse)
     assert msg2.token == 'token2'
     assert msg2.start == 3
     assert msg2.end == 4
-    assert msg2.limit_exceeded
+    assert msg2.limitExceeded
 
     assert not msg3
     assert not msg4
@@ -189,3 +219,12 @@ def test_message_serializer_message_iterator():
         count += 1
 
     assert count == 2
+
+def test_deserialize_problem_update_ruby_backend():
+    serialized = b'\x82\xacfileProblems\x91\x82\xa4file\xda\x001C:\\Users\\mthiede\\gitrepos\\jep-ruby\\demo\\test.demo\xa8problems\x91\x83\xa7message\xb5unexpected token kEND\xa8severity\xa5error\xa4line\x04\xa8_message\xadProblemUpdate'
+
+    serializer = MessageSerializer()
+    serializer.enque_data(serialized)
+
+    message = next(iter(serializer))
+    assert isinstance(message, ProblemUpdate)

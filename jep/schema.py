@@ -46,11 +46,11 @@ class OutOfSync(Message):
 
 @enum.unique
 class Severity(enum.Enum):
-    Debug = 1
-    Info = 2
-    Warn = 3
-    Error = 4
-    Fatal = 5
+    debug = 1
+    info = 2
+    warn = 3
+    error = 4
+    fatal = 5
 
 
 class Problem(Serializable):
@@ -72,9 +72,9 @@ class FileProblems(Serializable):
 
 
 class ProblemUpdate(Message):
-    def __init__(self, file_problems: [FileProblems], partial: bool=False):
+    def __init__(self, fileProblems: [FileProblems], partial: bool=False):
         super().__init__()
-        self.file_problems = file_problems
+        self.fileProblems = fileProblems
         self.partial = partial
 
     def invoke(self, listener, context):
@@ -95,38 +95,38 @@ class CompletionRequest(Message):
 
 @enum.unique
 class SemanticType(enum.Enum):
-    Comment = 1
-    Type = 2
-    String = 3
-    Number = 4
-    Identifier = 5
-    Keyword = 6
-    Label = 7
-    Link = 8
-    Special1 = 9
-    Special2 = 10
-    Special3 = 11
-    Special4 = 12
-    Special5 = 13
+    comment = 1
+    type = 2
+    string = 3
+    number = 4
+    identifier = 5
+    keyword = 6
+    label = 7
+    link = 8
+    special1 = 9
+    special2 = 10
+    special3 = 11
+    special4 = 12
+    special5 = 13
 
 
 class CompletionOption(Serializable):
-    def __init__(self, insert: str, desc: str=None, long_desc: str=None, semantics: SemanticType=None, extension_id: str=None):
+    def __init__(self, insert: str, desc: str=None, longDesc: str=None, semantics: SemanticType=None, extensionId: str=None):
         super().__init__()
         self.insert = insert
         self.desc = desc
-        self.long_desc = long_desc
+        self.longDesc = longDesc
         self.semantics = semantics
-        self.extension_id = extension_id
+        self.extensionId = extensionId
 
 
 class CompletionResponse(Message):
-    def __init__(self, token: str, start: int, end: int, limit_exceeded: bool, options: [CompletionOption]=None):
+    def __init__(self, token: str, start: int, end: int, limitExceeded: bool, options: [CompletionOption]=None):
         super().__init__()
         self.token = token
         self.start = start
         self.end = end
-        self.limit_exceeded = limit_exceeded
+        self.limitExceeded = limitExceeded
         self.options = options
 
     def invoke(self, listener, context):
@@ -134,9 +134,9 @@ class CompletionResponse(Message):
 
 
 class CompletionInvocation(Message):
-    def __init__(self, extension_id):
+    def __init__(self, extensionId):
         super().__init__()
-        self.extension_id = extension_id
+        self.extensionId = extensionId
 
     def invoke(self, listener, context):
         listener.on_completion_invocation(self, context)
