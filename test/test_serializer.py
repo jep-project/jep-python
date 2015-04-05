@@ -1,3 +1,5 @@
+from .logconfig import configure_test_logger
+
 try:
     import enum
 except ImportError:
@@ -6,6 +8,10 @@ except ImportError:
 import inspect
 from unittest import mock
 from jep.serializer import Serializable, serialize_to_builtins, deserialize_from_builtins
+
+
+def setup_function(function):
+    configure_test_logger()
 
 
 def test_serializable_meta():

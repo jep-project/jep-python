@@ -5,6 +5,11 @@ import pytest
 from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendConnection, TIMEOUT_BACKEND_ALIVE, TIMEOUT_LAST_MESSAGE
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, CompletionRequest
+from test.logconfig import configure_test_logger
+
+
+def setup_function(function):
+    configure_test_logger()
 
 
 def test_initial_state():

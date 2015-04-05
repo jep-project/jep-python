@@ -7,9 +7,11 @@ import itertools
 from jep.config import TIMEOUT_LAST_MESSAGE
 from jep.frontend import Frontend, State, BackendConnection, TIMEOUT_BACKEND_STARTUP, TIMEOUT_BACKEND_SHUTDOWN
 from jep.schema import Shutdown, BackendAlive
+from test.logconfig import configure_test_logger
 
 
 def setup_function(function):
+    configure_test_logger()
     # make sure all test function start from input folder:
     os.chdir(os.path.join(os.path.dirname(__file__), 'input'))
 

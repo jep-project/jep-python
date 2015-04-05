@@ -1,45 +1,19 @@
+from test.logconfig import configure_test_logger
+
 try:
     import umsgpack
 except ImportError:
     from jep.contrib import umsgpack
 
-import logging.config
 from unittest import mock
-import sys
 import pytest
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
-    Severity, FileProblems, CompletionInvocation, Message
+    Severity, FileProblems, CompletionInvocation
 
 
 def setup_function(function):
-    logging.config.dictConfig({
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'simple': {
-                'format': '%(asctime)s %(name)s %(levelname)s: %(message)s'
-            }
-        },
-        'handlers': {
-            'console': {
-                'stream': sys.stdout,
-                'class': 'logging.StreamHandler',
-                'formatter': 'simple'
-            }
-        },
-        'loggers': {
-            'jep': {
-                'handlers': ['console'],
-                'propagate': False,
-                'level': 'DEBUG'
-            }
-        },
-        'root': {
-            'level': 'WARNING',
-            'handlers': ['console']
-        }
-    })
+    configure_test_logger()
 
 
 def test_message_serializer_serialize_chain():

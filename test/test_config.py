@@ -1,8 +1,10 @@
 import os
 from jep.config import ServiceConfigProvider, ServiceConfig
+from test.logconfig import configure_test_logger
 
 
 def setup_function(function):
+    configure_test_logger()
     # make sure all test function start from input folder:
     os.chdir(os.path.join(os.path.dirname(__file__), 'input'))
 
