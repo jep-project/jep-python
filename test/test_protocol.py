@@ -11,6 +11,7 @@ from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
     Severity, FileProblems, CompletionInvocation, Message
 
+
 def setup_function(function):
     logging.config.dictConfig({
         'version': 1,
@@ -39,6 +40,7 @@ def setup_function(function):
             'handlers': ['console']
         }
     })
+
 
 def test_message_serializer_serialize_chain():
     mock_packer = mock.MagicMock()
@@ -220,6 +222,7 @@ def test_message_serializer_message_iterator():
 
     assert count == 2
 
+
 def test_deserialize_problem_update_ruby_backend():
     serialized = b'\x82\xacfileProblems\x91\x82\xa4file\xda\x001C:\\Users\\mthiede\\gitrepos\\jep-ruby\\demo\\test.demo\xa8problems\x91\x83\xa7message\xb5unexpected token kEND\xa8severity\xa5error\xa4line\x04\xa8_message\xadProblemUpdate'
 
@@ -228,3 +231,4 @@ def test_deserialize_problem_update_ruby_backend():
 
     message = next(iter(serializer))
     assert isinstance(message, ProblemUpdate)
+    assert message.fileProblems[0].problems[0].severity is Severity.error
