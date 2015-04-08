@@ -1,7 +1,4 @@
-try:
-    import umsgpack
-except ImportError:
-    from jep.contrib import umsgpack
+import umsgpack
 
 import io
 import logging

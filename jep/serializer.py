@@ -1,9 +1,5 @@
 """Reflective serialization of messages based on mapping classes to built-in types."""
-try:
-    import enum
-except ImportError:
-    import jep.contrib.enum as enum
-
+import enum
 import inspect
 
 
