@@ -3,8 +3,7 @@ python:
   - "3.3"
   - "3.4"
 install:
-  - pip install -r requirements.txt
+  - pip install -e .
   - pip list
 script:
-  - py.test -v test
-
+  - python setup.py test
