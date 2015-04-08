@@ -1,16 +1,12 @@
 """Framework independent PEP backend implementation."""
+import datetime
+import enum
 import logging
 import socket
 import select
-import datetime
 from jep.config import TIMEOUT_SELECT_SEC, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive
-
-try:
-    import enum
-except ImportError:
-    import jep.contrib.enum as enum
 
 _logger = logging.getLogger(__name__)
 

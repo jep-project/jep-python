@@ -1,9 +1,5 @@
 """JEP message types."""
-try:
-    import enum
-except ImportError:
-    import jep.contrib.enum as enum
-
+import enum
 from jep.serializer import Serializable
 
 

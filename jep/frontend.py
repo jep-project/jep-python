@@ -1,4 +1,5 @@
 """JEP frontend support."""
+import enum
 import collections
 import logging
 import platform
@@ -15,11 +16,6 @@ from jep.async import AsynchronousFileReader
 from jep.config import ServiceConfigProvider, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown
-
-try:
-    import enum
-except ImportError:
-    import jep.contrib.enum as enum
 
 _logger = logging.getLogger(__name__)
 

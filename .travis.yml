@@ -3,8 +3,12 @@ python:
   - "3.3"
   - "3.4"
 install:
-  - pip install -r requirements.txt
+  - pip install --upgrade pip
+  - pip install virtualenv
+  - virtualenv jepvenv
+  - source jepvenv/bin/activate
+  - pip list
+  - pip install -e .
   - pip list
 script:
-  - py.test test
-
+  - python setup.py test -a test

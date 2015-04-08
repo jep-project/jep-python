@@ -1,10 +1,5 @@
 from .logconfig import configure_test_logger
-
-try:
-    import enum
-except ImportError:
-    import jep.contrib.enum as enum
-
+import enum
 import inspect
 from unittest import mock
 from jep.serializer import Serializable, serialize_to_builtins, deserialize_from_builtins
