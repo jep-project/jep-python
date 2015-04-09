@@ -487,7 +487,9 @@ def test_backend_connected_receive_data_none(mock_time_module, mock_datetime_mod
     mock_socket.recv = mock.MagicMock(return_value=None)
 
     connection.run(datetime.timedelta(seconds=2))
-    assert connection.state is State.Disconnected
+
+    # backend tries to reconnect:
+    assert connection.state is State.Connecting
 
 
 @mock.patch('jep.frontend.subprocess')
@@ -503,4 +505,5 @@ def test_backend_connected_receive_data_exception(mock_time_module, mock_datetim
     mock_socket.recv = mock.MagicMock(side_effect=ConnectionResetError)
 
     connection.run(datetime.timedelta(seconds=2))
-    assert connection.state is State.Disconnected
+    # backend tries to reconnect:
+    assert connection.state is State.Connecting
