@@ -5,9 +5,8 @@ python:
 install:
   - pip install --upgrade pip
   - pip install virtualenv
-  - virtualenv jepvenv
-  - source jepvenv/bin/activate
-  - pip list
+  - virtualenv ~/jepvenv
+  - source ~/jepvenv/bin/activate
   - pip install -e .
   - pip list
 script:
