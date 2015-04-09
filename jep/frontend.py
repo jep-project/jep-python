@@ -102,6 +102,8 @@ class BackendConnection:
             State.Disconnecting: self._run_disconnecting,
             State.Disconnected: self._run_disconnected
         }
+        #: Does the user expect the connection to be reestablished e.g. after the backend died?
+        self._reconnect_expected = False
 
     def connect(self):
         """Opens connection to backend service."""
@@ -132,6 +134,7 @@ class BackendConnection:
 
     def disconnect(self):
         """Closes connection to backend service."""
+        self._reconnect_expected = False
         self.send_message(Shutdown())
         self._state_timer_reset = datetime.datetime.now()
         self.state = State.Disconnecting
@@ -216,6 +219,9 @@ class BackendConnection:
                 self._socket.setblocking(0)
                 self._state_timer_reset = datetime.datetime.now()
                 self.state = State.Connected
+
+                # from now on, only the user can stop this connection for good:
+                self._reconnect_expected = True
             else:
                 _logger.warning('Could not connect to backend at port %d within %.2f seconds (socket is None).' % (port, duration.total_seconds()))
                 self._cleanup(duration)
@@ -281,6 +287,10 @@ class BackendConnection:
             self._process_output_reader = None
 
         self.state = State.Disconnected
+
+        if self._reconnect_expected:
+            _logger.debug('Reconnecting since this disconnect was not initiated by user.')
+            self.connect()
 
     @classmethod
     def _parse_port_announcement(cls, lines):
