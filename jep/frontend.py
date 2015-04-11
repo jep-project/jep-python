@@ -10,6 +10,7 @@ import time
 import select
 import shlex
 import datetime
+import os
 from os import path
 
 from jep.async import AsynchronousFileReader
@@ -111,7 +112,8 @@ class BackendConnection:
             return
 
         # launch backend process and capture its output:
-        _logger.debug('Starting backend service: %s' % self.service_config.command)
+        cwd = path.dirname(self.service_config.config_file_path)
+        _logger.debug('Starting backend service with command "%s" in directory %s.' % (self.service_config.command, cwd))
         try:
             # on Windows prevent console window when being called from GUI process:
             startupinfo = subprocess.STARTUPINFO()
@@ -120,8 +122,11 @@ class BackendConnection:
         except AttributeError:
             # non-Windows system:
             startupinfo = None
+
+        # make cwd the command search start folder as well as the current dir of the command itself:
+        os.chdir(cwd)
         self._process = subprocess.Popen(shlex.split(self.service_config.command, posix=not platform.system() == 'Windows'),
-                                         cwd=path.dirname(self.service_config.config_file_path),
+                                         cwd=cwd,
                                          startupinfo=startupinfo,
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.STDOUT,
