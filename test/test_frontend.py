@@ -81,19 +81,18 @@ def test_provide_connection_second_time_with_matching_selector_and_new_checksum(
     mock_connection.reset_mock()
 
     # now change the checksum of the provided service configuration:
-    mock_service_config_provider.checksum = mock.MagicMock(return_value=mock.sentinel.CONFIG_CHECKSUM2)
-    mock_connection2 = mock.MagicMock()
-    mock_connection2.service_config.checksum = mock.sentinel.CONFIG_CHECKSUM
-    mock_provide_backend_connection.return_value = mock_connection2
+    mock_service_config2 = mock.MagicMock()
+    mock_service_config2.selector = mock.sentinel.CONFIG_SELECTOR
+    mock_service_config_provider.provide_for.return_value = mock_service_config2
+    mock_service_config_provider.checksum.return_value = mock.sentinel.CONFIG_CHECKSUM2
 
     connection2 = frontend.get_connection(mock.sentinel.FILE_NAME2)
 
     # new connection:
-    assert connection1 is not connection2
-    assert connection2 is mock_connection2
-    assert mock_connection.method_calls == [mock.call.disconnect()]
-    assert mock_connection2.method_calls == [mock.call.connect()]
-    assert mock_provide_backend_connection.call_count == 2
+    assert connection1 is connection2
+    assert mock_connection.reconnect.called
+    mock_connection.reconnect.assert_called_once_with(mock_service_config2)
+    assert mock_provide_backend_connection.call_count == 1
 
 
 def test_provide_connection_second_time_with_other_selector():
@@ -385,6 +384,31 @@ def test_backend_connected_disconnect_backend_shutdown_ok(mock_os_module, mock_d
     assert connection.state is State.Disconnected
     assert not connection._process
     assert not connection._process_output_reader
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.datetime')
+@mock.patch('jep.frontend.os')
+def test_backend_connected_reconnect(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
+    connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
+
+    mock_service_config2 = mock.MagicMock()
+    mock_service_config2.command = 'folder/somenewcommand.ext someparameter somethingelse'
+    mock_service_config2.config_file_path = path.abspath('somenewdir/.jep')
+    connection.reconnect(mock_service_config2)
+
+    # frontend tried to send shutdown to connected backend:
+    assert isinstance(mock_serializer.serialize.call_args[0][0], Shutdown)
+    mock_socket.send.assert_called_once_with(mock.sentinel.SERIALIZED_SHUTDOWN)
+
+    # run to wait for backend to shut down gracefully:
+    mock_process.poll = mock.MagicMock(return_value=0)
+    connection.run(datetime.timedelta(seconds=0.4))
+
+    assert connection.state is State.Connecting
+    assert mock_subprocess_module.Popen.call_args[0][0][0] == 'folder/somenewcommand.ext'
+    assert mock_subprocess_module.Popen.call_args[1]['cwd'] == path.abspath('somenewdir')
 
 
 @mock.patch('jep.frontend.subprocess')

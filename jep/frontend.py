@@ -53,8 +53,7 @@ class Frontend:
                     _logger.debug('Config file %s changed, need to renew connection.' % service_config.config_file_path)
 
                     # disconnect old and return new one (as disconnect can take a few cycles):
-                    connection.disconnect()
-                    connection = self._connect(service_config)
+                    connection.reconnect(service_config)
                 else:
                     _logger.debug('Using existing connection.')
             else:
@@ -84,6 +83,25 @@ class State(enum.Enum):
 
 class BackendConnection:
     """Connection to a single backend service."""
+
+    def __init__(self, service_config, listeners, serializer=None, provide_async_reader=None):
+        self.service_config = service_config
+        self.listeners = listeners
+        self.state = State.Disconnected
+        self._serializer = serializer or MessageSerializer()
+        self._provide_async_reader = provide_async_reader or AsynchronousFileReader
+        self._process = None
+        self._process_output_reader = None
+        self._socket = None
+        self._state_timer_reset = None
+        self._state_handler = {
+            State.Connecting: self._run_connecting,
+            State.Connected: self._run_connected,
+            State.Disconnecting: self._run_disconnecting,
+            State.Disconnected: self._run_disconnected
+        }
+        #: Does the user expect the connection to be reestablished e.g. after the backend died?
+        self._reconnect_expected = False
 
     def connect(self):
         """Opens connection to backend service."""
@@ -117,31 +135,19 @@ class BackendConnection:
         self._state_timer_reset = datetime.datetime.now()
         self.state = State.Connecting
 
-    def __init__(self, service_config, listeners, serializer=None, provide_async_reader=None):
-        self.service_config = service_config
-        self.listeners = listeners
-        self.state = State.Disconnected
-        self._serializer = serializer or MessageSerializer()
-        self._provide_async_reader = provide_async_reader or AsynchronousFileReader
-        self._process = None
-        self._process_output_reader = None
-        self._socket = None
-        self._state_timer_reset = None
-        self._state_handler = {
-            State.Connecting: self._run_connecting,
-            State.Connected: self._run_connected,
-            State.Disconnecting: self._run_disconnecting,
-            State.Disconnected: self._run_disconnected
-        }
-        #: Does the user expect the connection to be reestablished e.g. after the backend died?
-        self._reconnect_expected = False
-
     def disconnect(self):
         """Closes connection to backend service."""
         self._reconnect_expected = False
         self.send_message(Shutdown())
         self._state_timer_reset = datetime.datetime.now()
         self.state = State.Disconnecting
+
+    def reconnect(self, service_config):
+        """Reconnects to new service configuration."""
+        _logger.info('Reconnecting due to changed service configuration.')
+        self.disconnect()
+        self.service_config = service_config
+        self._reconnect_expected = True
 
     def run(self, duration):
         """Synchronous execution of connector statemachine."""
