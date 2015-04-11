@@ -121,19 +121,25 @@ class BackendConnection:
             # non-Windows system:
             startupinfo = None
 
-        # make cwd the command search start folder as well as the current dir of the command itself:
-        os.chdir(cwd)
-        self._process = subprocess.Popen(shlex.split(self.service_config.command, posix=not platform.system() == 'Windows'),
-                                         cwd=cwd,
-                                         startupinfo=startupinfo,
-                                         stdout=subprocess.PIPE,
-                                         stderr=subprocess.STDOUT,
-                                         universal_newlines=True)
-        self._process_output_reader = self._provide_async_reader(self._process.stdout)
-        self._process_output_reader.start()
+        try:
+            # make cwd the command search start folder as well as the current dir of the command itself:
+            os.chdir(cwd)
+            self._process = subprocess.Popen(shlex.split(self.service_config.command, posix=not platform.system() == 'Windows'),
+                                             cwd=cwd,
+                                             startupinfo=startupinfo,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.STDOUT,
+                                             universal_newlines=True)
+            self._process_output_reader = self._provide_async_reader(self._process.stdout)
+            self._process_output_reader.start()
 
-        self._state_timer_reset = datetime.datetime.now()
-        self.state = State.Connecting
+            self._state_timer_reset = datetime.datetime.now()
+            self.state = State.Connecting
+        except Exception as e:
+            _logger.warning('Failed to start backend service with command "%s" in directory %s with exception %s.' % (self.service_config.command, cwd, e))
+            # prevent recursion:
+            self._reconnect_expected=False
+            self._cleanup()
 
     def disconnect(self):
         """Closes connection to backend service."""
@@ -311,11 +317,12 @@ class BackendConnection:
         return port
 
     def _read_backend_output(self, result_lines=None):
-        while not self._process_output_reader.queue_.empty():
-            line = self._process_output_reader.queue_.get().strip()
-            _logger.debug('[backend] >>>%s<<<' % line)
-            if result_lines is not None:
-                result_lines.append(line)
+        if self._process_output_reader:
+            while not self._process_output_reader.queue_.empty():
+                line = self._process_output_reader.queue_.get().strip()
+                _logger.debug('[backend] %s' % line)
+                if result_lines is not None:
+                    result_lines.append(line)
 
 
 class BackendListener:
