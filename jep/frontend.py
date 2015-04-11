@@ -54,9 +54,11 @@ class Frontend:
             if connection:
                 if not connection.service_config.checksum == self.service_config_provider.checksum(service_config.config_file_path):
                     # configuration changed:
-                    _logger.debug('Config file %s changed, need to restart connection.' % service_config.config_file_path)
+                    _logger.debug('Config file %s changed, need to renew connection.' % service_config.config_file_path)
+
+                    # disconnect old and return new one (as disconnect can take a few cycles):
                     connection.disconnect()
-                    connection.connect()
+                    connection = self._connect(service_config)
                 else:
                     _logger.debug('Using existing connection.')
             else:
@@ -109,6 +111,7 @@ class BackendConnection:
     def connect(self):
         """Opens connection to backend service."""
         if self.state is not State.Disconnected:
+            _logger.warning('Cannot connect while in state %s.' % self.state.name)
             return
 
         # launch backend process and capture its output:

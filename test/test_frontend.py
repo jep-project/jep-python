@@ -78,17 +78,22 @@ def test_provide_connection_second_time_with_matching_selector_and_new_checksum(
     frontend = Frontend(mock.sentinel.LISTENERS, mock_service_config_provider, mock_provide_backend_connection)
     connection1 = frontend.get_connection(mock.sentinel.FILE_NAME1)
     assert mock_connection.connect.called
-    mock_connection.connect.reset_mock()
+    mock_connection.reset_mock()
 
     # now change the checksum of the provided service configuration:
     mock_service_config_provider.checksum = mock.MagicMock(return_value=mock.sentinel.CONFIG_CHECKSUM2)
+    mock_connection2 = mock.MagicMock()
+    mock_connection2.service_config.checksum = mock.sentinel.CONFIG_CHECKSUM
+    mock_provide_backend_connection.return_value = mock_connection2
 
     connection2 = frontend.get_connection(mock.sentinel.FILE_NAME2)
 
-    # still the same connection, but reconnected due to checksum change:
-    assert connection1 is connection2
-    assert mock_connection.method_calls == [mock.call.connect(), mock.call.disconnect(), mock.call.connect()]
-    assert mock_provide_backend_connection.call_count == 1
+    # new connection:
+    assert connection1 is not connection2
+    assert connection2 is mock_connection2
+    assert mock_connection.method_calls == [mock.call.disconnect()]
+    assert mock_connection2.method_calls == [mock.call.connect()]
+    assert mock_provide_backend_connection.call_count == 2
 
 
 def test_provide_connection_second_time_with_other_selector():
