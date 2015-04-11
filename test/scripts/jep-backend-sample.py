@@ -1,10 +1,10 @@
 """Start script for JEP backend service."""
+import sys
 
 try:
     import jep as jeptestimport
 except ImportError:
     # not in path, do it now:
-    import sys
     import os.path
     sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
