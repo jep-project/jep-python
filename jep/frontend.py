@@ -6,7 +6,6 @@ import platform
 import re
 import socket
 import subprocess
-import time
 import select
 import shlex
 import datetime
@@ -28,9 +27,6 @@ TIMEOUT_BACKEND_STARTUP = datetime.timedelta(seconds=5)
 
 #: Timeout to wait for backend shutdown.
 TIMEOUT_BACKEND_SHUTDOWN = datetime.timedelta(seconds=5)
-
-#: Period used for polling backend state.
-BACKEND_POLL_PERIOD_SEC = 0.1
 
 
 class Frontend:
@@ -173,7 +169,7 @@ class BackendConnection:
             _logger.warning('In state %s no messages are sent to backend, but received request to send %s.' % (self.state, message))
 
     def _run_disconnected(self, duration):
-        time.sleep(duration.total_seconds())
+        pass
 
     def _run_connecting(self, duration):
         # check for backend's port announcement:
@@ -185,8 +181,6 @@ class BackendConnection:
             if datetime.datetime.now() - self._state_timer_reset > TIMEOUT_BACKEND_STARTUP:
                 _logger.warning('Backend not starting up, aborting connection.')
                 self._cleanup(duration)
-            else:
-                time.sleep(BACKEND_POLL_PERIOD_SEC)
             return
 
         self._connect(port, duration)
@@ -210,9 +204,6 @@ class BackendConnection:
                 if datetime.datetime.now() - self._state_timer_reset > TIMEOUT_BACKEND_SHUTDOWN:
                     _logger.warning('Backend still running and not observing shutdown protocol.')
                     self._cleanup(duration)
-                else:
-                    # wait a bit longer for backend to go down:
-                    time.sleep(BACKEND_POLL_PERIOD_SEC)
             else:
                 _logger.debug('Backend process shut down gracefully.')
                 self._process = None

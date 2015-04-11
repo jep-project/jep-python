@@ -289,9 +289,8 @@ def test_backend_connection_connect_no_port_announcement(mock_os_module, mock_da
 @mock.patch('jep.frontend.subprocess')
 @mock.patch('jep.frontend.socket')
 @mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.time')
 @mock.patch('jep.frontend.os')
-def test_backend_connection_connect_connection_none(mock_os_module, mock_time_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
+def test_backend_connection_connect_connection_none(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
     now = datetime.datetime.now()
     mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
                                                                                                                mock_subprocess_module, now)
@@ -321,9 +320,8 @@ def test_backend_connection_connect_connection_none(mock_os_module, mock_time_mo
 @mock.patch('jep.frontend.subprocess')
 @mock.patch('jep.frontend.socket')
 @mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.time')
 @mock.patch('jep.frontend.os')
-def test_backend_connection_connect_connection_exception(mock_os_module, mock_time_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
+def test_backend_connection_connect_connection_exception(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
     now = datetime.datetime.now()
     mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
                                                                                                                mock_subprocess_module, now)
@@ -392,9 +390,8 @@ def test_backend_connected_disconnect_backend_shutdown_ok(mock_os_module, mock_d
 @mock.patch('jep.frontend.subprocess')
 @mock.patch('jep.frontend.socket')
 @mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.time')
 @mock.patch('jep.frontend.os')
-def test_backend_connected_disconnect_backend_shutdown_timeout(mock_os_module, mock_time_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
+def test_backend_connected_disconnect_backend_shutdown_timeout(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
     connection.disconnect()
@@ -492,9 +489,8 @@ def test_backend_connected_receive_data_resets_alive_timeout(mock_os_module, moc
 @mock.patch('jep.frontend.socket')
 @mock.patch('jep.frontend.select')
 @mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.time')
 @mock.patch('jep.frontend.os')
-def test_backend_connected_receive_data_none(mock_os_module, mock_time_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+def test_backend_connected_receive_data_none(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
     # prepare None data ready for reception:
@@ -511,9 +507,8 @@ def test_backend_connected_receive_data_none(mock_os_module, mock_time_module, m
 @mock.patch('jep.frontend.socket')
 @mock.patch('jep.frontend.select')
 @mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.time')
 @mock.patch('jep.frontend.os')
-def test_backend_connected_receive_data_exception(mock_os_module, mock_time_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+def test_backend_connected_receive_data_exception(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
     # prepare None data ready for reception:
