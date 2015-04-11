@@ -54,7 +54,7 @@ class Frontend:
             if connection:
                 if not connection.service_config.checksum == self.service_config_provider.checksum(service_config.config_file_path):
                     # configuration changed:
-                    _logger.debug('Config file %s changed, need to restart connection.')
+                    _logger.debug('Config file %s changed, need to restart connection.' % service_config.config_file_path)
                     connection.disconnect()
                     connection.connect()
                 else:
