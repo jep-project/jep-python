@@ -294,7 +294,7 @@ class BackendConnection:
         self.state = State.Disconnected
 
         if self._reconnect_expected:
-            _logger.debug('Reconnecting since this disconnect was not initiated by user.')
+            _logger.debug('Attempting to reconnect.')
             self.connect()
 
     @classmethod
