@@ -89,25 +89,6 @@ class State(enum.Enum):
 class BackendConnection:
     """Connection to a single backend service."""
 
-    def __init__(self, service_config, listeners, serializer=MessageSerializer(), provide_async_reader=AsynchronousFileReader):
-        self.service_config = service_config
-        self.listeners = listeners
-        self.state = State.Disconnected
-        self._serializer = serializer
-        self._provide_async_reader = provide_async_reader
-        self._process = None
-        self._process_output_reader = None
-        self._socket = None
-        self._state_timer_reset = None
-        self._state_handler = {
-            State.Connecting: self._run_connecting,
-            State.Connected: self._run_connected,
-            State.Disconnecting: self._run_disconnecting,
-            State.Disconnected: self._run_disconnected
-        }
-        #: Does the user expect the connection to be reestablished e.g. after the backend died?
-        self._reconnect_expected = False
-
     def connect(self):
         """Opens connection to backend service."""
         if self.state is not State.Disconnected:
@@ -139,6 +120,25 @@ class BackendConnection:
 
         self._state_timer_reset = datetime.datetime.now()
         self.state = State.Connecting
+
+    def __init__(self, service_config, listeners, serializer=None, provide_async_reader=None):
+        self.service_config = service_config
+        self.listeners = listeners
+        self.state = State.Disconnected
+        self._serializer = serializer or MessageSerializer()
+        self._provide_async_reader = provide_async_reader or AsynchronousFileReader
+        self._process = None
+        self._process_output_reader = None
+        self._socket = None
+        self._state_timer_reset = None
+        self._state_handler = {
+            State.Connecting: self._run_connecting,
+            State.Connected: self._run_connected,
+            State.Disconnecting: self._run_disconnecting,
+            State.Disconnected: self._run_disconnected
+        }
+        #: Does the user expect the connection to be reestablished e.g. after the backend died?
+        self._reconnect_expected = False
 
     def disconnect(self):
         """Closes connection to backend service."""

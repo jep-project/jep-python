@@ -24,9 +24,9 @@ MESSAGE_CLASS_BY_NAME = {
 class MessageSerializer:
     """Serialization of JEP message objects."""
 
-    def __init__(self, packer=umsgpack):
+    def __init__(self, packer=None):
         #: Optional packer/formatter like json or msgpack, exposing typical load/dump interface.
-        self.packer = packer
+        self.packer = packer or umsgpack
         #: Buffer holding chunked data (mutable).
         self.buffer = bytearray()
 

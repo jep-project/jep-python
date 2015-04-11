@@ -192,7 +192,7 @@ class Backend():
 class FrontendConnection:
     """Connection to frontend instance."""
 
-    def __init__(self, service, sock, serializer=MessageSerializer()):
+    def __init__(self, service, sock, serializer=None):
         # Backend instance that created this connection.
         self.service = service
         # Socket used to talk to frontend.
@@ -201,7 +201,7 @@ class FrontendConnection:
         self.ts_last_data_received = datetime.datetime.now()
 
         #: Serializer used to decode data from frontend.
-        self.serializer = serializer
+        self.serializer = serializer or MessageSerializer()
 
     def send_message(self, msg):
         self.service.send_message(self, msg)

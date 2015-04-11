@@ -15,10 +15,10 @@ class AsynchronousFileReader(threading.Thread):
     Pushes read lines on a queue to be consumed in another thread.
     """
 
-    def __init__(self, file_, queue_=queue.Queue()):
+    def __init__(self, file_, queue_=None):
         super().__init__()
         self.file_ = file_
-        self.queue_ = queue_
+        self.queue_ = queue_ or queue.Queue()
 
     def run(self):
         """The body of the tread: read lines and put them on the queue."""
