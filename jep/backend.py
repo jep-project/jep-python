@@ -108,7 +108,7 @@ class Backend():
         clientsocket.setblocking(0)
         self.sockets.append(clientsocket)
         self.connection[clientsocket] = FrontendConnection(self, clientsocket)
-        _logger.info('Frontend connected.')
+        _logger.info('Frontend %d connected.' % id(clientsocket))
 
     def _receive(self, clientsocket):
         """Read of client data on given socket."""
@@ -125,10 +125,10 @@ class Backend():
                     frontend_connector.ts_last_data_received = datetime.datetime.now()
                     frontend_connector.serializer.enque_data(data)
                 else:
-                    _logger.info('Socket closed by frontend.')
+                    _logger.debug('Socket closed by frontend.')
                     raise ConnectionAbortedError()
         except ConnectionAbortedError:
-            _logger.info('Closing connection to frontend due to closed socket.')
+            _logger.debug('Closing connection to frontend due to closed socket.')
             self._close(clientsocket)
         except BlockingIOError as e:
             # leave receive loop for now as no more data is available:
@@ -146,6 +146,7 @@ class Backend():
             self._on_message_received(msg)
 
     def _close(self, sock):
+        _logger.info('Frontend %d disconnected.' % id(sock))
         sock.close()
         self.sockets.remove(sock)
         self.connection.pop(sock, None)
@@ -174,7 +175,7 @@ class Backend():
             # check timeouts for each connected frontend:
             for sock in self.sockets[1:].copy():
                 if now - self.connection[sock].ts_last_data_received >= TIMEOUT_LAST_MESSAGE:
-                    _logger.info('Disconnecting frontend after timeout.')
+                    _logger.debug('Disconnecting frontend after timeout.')
                     self._close(sock)
 
     def send_message(self, connection, msg):

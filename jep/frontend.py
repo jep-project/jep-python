@@ -144,7 +144,7 @@ class BackendConnection:
 
     def reconnect(self, service_config):
         """Reconnects to new service configuration."""
-        _logger.info('Reconnecting due to changed service configuration.')
+        _logger.debug('Reconnecting due to changed service configuration.')
         self.disconnect()
         self.service_config = service_config
         self._reconnect_expected = True
@@ -224,6 +224,7 @@ class BackendConnection:
                 self._socket.setblocking(0)
                 self._state_timer_reset = datetime.datetime.now()
                 self.state = State.Connected
+                _logger.info('Connected to backend command %s' % self.service_config.command)
 
                 # from now on, only the user can stop this connection for good:
                 self._reconnect_expected = True
@@ -250,7 +251,7 @@ class BackendConnection:
                     _logger.debug('Received data: %s' % data)
                     self._serializer.enque_data(data)
                 else:
-                    _logger.info('Socket closed by backend.')
+                    _logger.debug('Socket closed by backend.')
                     raise ConnectionResetError()
         except ConnectionResetError:
             _logger.warning('Backend closed connection unexpectedly.')
@@ -292,6 +293,7 @@ class BackendConnection:
             self._process_output_reader = None
 
         self.state = State.Disconnected
+        _logger.info('Disconnected from backend.')
 
         if self._reconnect_expected:
             _logger.debug('Attempting to reconnect.')
