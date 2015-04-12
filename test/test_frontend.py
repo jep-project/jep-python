@@ -40,7 +40,7 @@ def test_provide_connection_first_time():
     assert connection is mock_connection
 
 
-def test_provide_connection_second_time_with_matching_selector_and_matching_checksum():
+def test_provide_connected_connection_second_time_with_matching_selector_and_matching_checksum():
     mock_service_config = mock.MagicMock()
     mock_service_config.selector = mock.sentinel.CONFIG_SELECTOR
     mock_service_config_provider = mock.MagicMock()
@@ -55,6 +55,7 @@ def test_provide_connection_second_time_with_matching_selector_and_matching_chec
     connection1 = frontend.get_connection(mock.sentinel.FILE_NAME1)
     assert mock_connection.connect.called
     mock_connection.connect.reset_mock()
+    mock_connection.state = State.Connected
 
     connection2 = frontend.get_connection(mock.sentinel.FILE_NAME2)
     assert connection1 is connection2
@@ -62,6 +63,29 @@ def test_provide_connection_second_time_with_matching_selector_and_matching_chec
     assert not mock_connection.disconnect.called
     assert [mock.call.provide_for(mock.sentinel.FILE_NAME1), mock.call.provide_for(mock.sentinel.FILE_NAME2)] in mock_service_config_provider.method_calls
     assert mock_provide_backend_connection.call_count == 1
+
+
+def test_provide_disconnected_connection_second_time_with_matching_selector_and_matching_checksum():
+    mock_service_config = mock.MagicMock()
+    mock_service_config.selector = mock.sentinel.CONFIG_SELECTOR
+    mock_service_config_provider = mock.MagicMock()
+    mock_service_config_provider.provide_for = mock.MagicMock(return_value=mock_service_config)
+    mock_service_config_provider.checksum = mock.MagicMock(return_value=mock.sentinel.CONFIG_CHECKSUM)
+
+    mock_connection = mock.MagicMock()
+    mock_connection.service_config.checksum = mock.sentinel.CONFIG_CHECKSUM
+    mock_provide_backend_connection = mock.MagicMock(return_value=mock_connection)
+
+    frontend = Frontend(mock.sentinel.LISTENERS, mock_service_config_provider, mock_provide_backend_connection)
+    connection1 = frontend.get_connection(mock.sentinel.FILE_NAME1)
+    assert mock_connection.connect.called
+    mock_connection.connect.reset_mock()
+    mock_connection.state = State.Disconnected
+
+    connection2 = frontend.get_connection(mock.sentinel.FILE_NAME2)
+    assert connection1 is connection2
+    assert mock_connection.connect.called
+    assert not mock_connection.disconnect.called
 
 
 def test_provide_connection_second_time_with_matching_selector_and_new_checksum():
