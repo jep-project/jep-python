@@ -146,7 +146,7 @@ class Backend():
             self._on_message_received(msg)
 
     def _close(self, sock):
-        _logger.info('Frontend %d disconnected.' % id(sock))
+        _logger.info('Socket %d disconnected.' % id(sock))
         sock.close()
         self.sockets.remove(sock)
         self.connection.pop(sock, None)
