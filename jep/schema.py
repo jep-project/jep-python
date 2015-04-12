@@ -117,7 +117,7 @@ class CompletionOption(Serializable):
 
 
 class CompletionResponse(Message):
-    def __init__(self, token: str, start: int, end: int, limitExceeded: bool=False, options: [CompletionOption]=None):
+    def __init__(self, token: str, start: int, end: int, limitExceeded: bool=False, options: [CompletionOption]=()):
         super().__init__()
         self.token = token
         self.start = start
