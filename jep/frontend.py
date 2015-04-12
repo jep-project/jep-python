@@ -56,6 +56,9 @@ class Frontend:
                     connection.reconnect(service_config)
                 else:
                     _logger.debug('Using existing connection.')
+                    if connection.state is State.Disconnected:
+                        # reattempt to connect:
+                        connection.connect()
             else:
                 _logger.debug('Creating new connection.')
                 connection = self._connect(service_config)
