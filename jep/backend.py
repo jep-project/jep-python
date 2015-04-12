@@ -17,7 +17,7 @@ PORT_RANGE = (9001, 9100)
 LISTEN_QUEUE_LENGTH = 3
 
 #: Number of seconds between backend alive messages. Optimal: PERIOD_BACKEND_ALIVE_SEC = n * TIMEOUT_SELECT_SEC
-TIMEOUT_BACKEND_ALIVE = datetime.timedelta(seconds=1)
+TIMEOUT_BACKEND_ALIVE = datetime.timedelta(minutes=1)
 
 
 class NoPortFoundError(Exception):
