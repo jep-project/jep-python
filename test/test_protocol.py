@@ -206,3 +206,13 @@ def test_deserialize_problem_update_ruby_backend():
     message = next(iter(serializer))
     assert isinstance(message, ProblemUpdate)
     assert message.fileProblems[0].problems[0].severity is Severity.error
+
+
+def test_regression_009_string_argument_without_encoding():
+    serialized = b'\x83\xa8_message\xabContentSync\xa4file\xd9!D:\\Work\\jep\\test\\my.requestlogger\xa4data\xd90sdf,smndfsdf M s df jhsdkashdk  sjhdjhsjdkakdhsj'
+
+    serializer = MessageSerializer()
+    serializer.enque_data(serialized)
+
+    message = next(iter(serializer))
+    assert isinstance(message, ContentSync)

@@ -20,7 +20,7 @@ class BackendAlive(Message):
 
 
 class ContentSync(Message):
-    def __init__(self, file: str, data: bytes, start: int=0, end: int=-1):
+    def __init__(self, file: str, data: str, start: int=0, end: int=-1):
         super().__init__()
         self.file = file
         self.start = start
