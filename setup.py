@@ -27,7 +27,10 @@ def main():
             sys.exit(errno)
 
     # configure dependencies corresponding to interpreter version:
-    install_requires = ['u-msgpack-python']
+    install_requires = [
+        'blist',
+        'u-msgpack-python'
+    ]
 
     if sys.version_info < (3, 3):
         print('This Python version is not supported, minimal version 3.3 is required.')
