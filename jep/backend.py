@@ -208,6 +208,9 @@ class FrontendConnection:
     def send_message(self, msg):
         self.service.send_message(self, msg)
 
+    def stop(self):
+        self.service.stop()
+
 
 class FrontendListener:
     """API to listen to messages from frontend, communicated via backend."""
@@ -232,7 +235,7 @@ class BackendServiceHandler(FrontendListener):
         self.content_by_filename = {}
 
     def on_shutdown(self, context):
-        context.service.stop()
+        context.stop()
 
     def on_content_sync(self, content_sync: ContentSync, context):
         content = self.content_by_filename.get(content_sync.file, blist.blist())
