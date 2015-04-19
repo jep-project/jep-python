@@ -49,7 +49,7 @@ class Backend():
         #: Map of socket to frontend descriptor.
         self.connection = dict()
         #: internal message handler:
-        self.service_handler = service_handler or BackendServiceHandler()
+        self.service_handler = service_handler or ServiceHandler()
 
     @property
     def serversocket(self):
@@ -228,7 +228,7 @@ class FrontendListener:
         return NotImplemented
 
 
-class BackendServiceHandler(FrontendListener):
+class ServiceHandler(FrontendListener):
     """Implements service level messages of backend."""
 
     def __init__(self):
