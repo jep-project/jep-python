@@ -28,7 +28,6 @@ def main():
 
     # configure dependencies corresponding to interpreter version:
     install_requires = [
-        'blist',
         'u-msgpack-python'
     ]
 

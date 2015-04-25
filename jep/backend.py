@@ -4,7 +4,6 @@ import enum
 import logging
 import socket
 import select
-import blist
 from jep.config import TIMEOUT_SELECT_SEC, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync
@@ -32,10 +31,26 @@ class State(enum.Enum):
     ShutdownPending = 3
 
 
-class Backend():
+class FrontendListener:
+    """API to listen to messages from frontend, communicated via backend."""
+
+    def on_shutdown(self, context):
+        return NotImplemented
+
+    def on_content_sync(self, content_sync, context):
+        return NotImplemented
+
+    def on_completion_request(self, completion_request, context):
+        return NotImplemented
+
+    def on_completion_invocation(self, completion_invocation, context):
+        return NotImplemented
+
+
+class Backend(FrontendListener):
     """Synchronous JEP backend service."""
 
-    def __init__(self, listeners=None, service_handler=None):
+    def __init__(self, listeners=None):
         #: User message listeners.
         self.listeners = listeners or []
         #: Active sockets, [0] is the server socket.
@@ -48,8 +63,6 @@ class Backend():
         self.BACKEND_ALIVE_DATA = MessageSerializer().serialize(BackendAlive())
         #: Map of socket to frontend descriptor.
         self.connection = dict()
-        #: internal message handler:
-        self.service_handler = service_handler or ServiceHandler()
 
     @property
     def serversocket(self):
@@ -149,8 +162,8 @@ class Backend():
                 # call listener's message specific handler method (visitor pattern's accept() call):
                 msg.invoke(listener, frontend_connector)
 
-            # call internal handler of service level messages:
-            msg.invoke(self.service_handler, frontend_connector)
+            # call backend directly for internally handled messages:
+            msg.invoke(self, frontend_connector)
 
     def _close(self, sock):
         _logger.info('Socket %d disconnected.' % id(sock))
@@ -190,55 +203,11 @@ class Backend():
     def _send_data(cls, sock, data):
         sock.send(data)
 
-
-class FrontendConnection:
-    """Connection to frontend instance."""
-
-    def __init__(self, service, sock, serializer=None):
-        # Backend instance that created this connection.
-        self.service = service
-        # Socket used to talk to frontend.
-        self.sock = sock
-        #: Timestamp of last message received from this frontend (initialized due to accept).
-        self.ts_last_data_received = datetime.datetime.now()
-
-        #: Serializer used to decode data from frontend.
-        self.serializer = serializer or MessageSerializer()
-
-    def send_message(self, msg):
-        self.service.send_message(self, msg)
-
-    def stop(self):
-        self.service.stop()
-
-
-class FrontendListener:
-    """API to listen to messages from frontend, communicated via backend."""
-
     def on_shutdown(self, context):
-        return NotImplemented
-
-    def on_content_sync(self, content_sync, context):
-        return NotImplemented
-
-    def on_completion_request(self, completion_request, context):
-        return NotImplemented
-
-    def on_completion_invocation(self, completion_invocation, context):
-        return NotImplemented
-
-
-class ServiceHandler(FrontendListener):
-    """Implements service level messages of backend."""
-
-    def __init__(self):
-        self.content_by_filename = {}
-
-    def on_shutdown(self, context):
-        context.stop()
+        self.stop()
 
     def on_content_sync(self, content_sync: ContentSync, context):
-        content = self.content_by_filename.get(content_sync.file, blist.blist())
+        content = self.content_by_filepath[content_sync.file]
         length = len(content)
 
         if content_sync.start > length:
@@ -256,3 +225,21 @@ class ServiceHandler(FrontendListener):
 
         _logger.debug('Updating file %s from index %d to %d: %s' % (content_sync.file, start, end, content_sync.data))
         content[start:end] = content_sync.data
+
+
+class FrontendConnection:
+    """Connection to frontend instance."""
+
+    def __init__(self, service, sock, serializer=None):
+        # Backend instance that created this connection.
+        self.service = service
+        # Socket used to talk to frontend.
+        self.sock = sock
+        #: Timestamp of last message received from this frontend (initialized due to accept).
+        self.ts_last_data_received = datetime.datetime.now()
+
+        #: Serializer used to decode data from frontend.
+        self.serializer = serializer or MessageSerializer()
+
+    def send_message(self, msg):
+        self.service.send_message(self, msg)
