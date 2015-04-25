@@ -78,6 +78,11 @@ def serialize_to_builtins(o):
 def deserialize_from_builtins(serialized, datatype, itemtype=None, name=None):
     """Instantiation of data type from built-in serialized form."""
 
+    # check for common encoding errors that may come up when hooking up different
+    # libraries in frontend and backend to emit better error message:
+    if (datatype is str and isinstance(serialized, bytes)) or (datatype is bytes and isinstance(serialized, str)):
+        raise TypeError('Cannot deserialize attribute %s of type %s from object "%s" of type %s.' % (name, datatype.__name__, serialized, type(serialized).__name__))
+
     if serialized is None:
         instantiated = None
     elif serialized is inspect._empty:
