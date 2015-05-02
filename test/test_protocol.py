@@ -122,8 +122,8 @@ def test_message_serializer_deserialize_completion_response():
         'end': 12,
         'limitExceeded': True,
         'options': [
-            {'insert': b'insert', 'desc': 'thedescription', 'semantics': 'string', 'extensionId': 'theExtId'},
-            {'insert': b'insert2', 'desc': 'thedescription2', 'semantics': 'identifier', 'extensionId': 'theExtId2'}
+            {'insert': 'insert', 'desc': 'thedescription', 'semantics': 'string', 'extensionId': 'theExtId'},
+            {'insert': 'insert2', 'desc': 'thedescription2', 'semantics': 'identifier', 'extensionId': 'theExtId2'}
         ]
     }
 
@@ -134,8 +134,8 @@ def test_message_serializer_deserialize_completion_response():
 
     msg = serializer.deserialize(packed)
 
-    expected = CompletionResponse('thetoken', 11, 12, True, [CompletionOption(b'insert', 'thedescription', semantics=SemanticType.string, extensionId='theExtId'),
-                                                             CompletionOption(b'insert2', 'thedescription2', semantics=SemanticType.identifier, extensionId='theExtId2')])
+    expected = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('insert', 'thedescription', semantics=SemanticType.string, extensionId='theExtId'),
+                                                             CompletionOption('insert2', 'thedescription2', semantics=SemanticType.identifier, extensionId='theExtId2')])
 
     # avoid implementation of eq in schema classes, so rely on correct serialization for now:
     assert serializer.serialize(msg) == serializer.serialize(expected)
@@ -209,7 +209,7 @@ def test_deserialize_problem_update_ruby_backend():
 
 
 def test_regression_009_string_argument_without_encoding():
-    serialized = b'\x83\xa8_message\xabContentSync\xa4file\xd9!D:\\Work\\jep\\test\\my.requestlogger\xa4data\xc40sdf,smndfsdf M s df jhsdkashdk  sjhdjhsjdkakdhsj'
+    serialized = b'\x83\xa8_message\xabContentSync\xa4file\xd9!D:\\Work\\jep\\test\\my.requestlogger\xa4data\xa40sdf,smndfsdf M s df jhsdkashdk  sjhdjhsjdkakdhsj'
 
     serializer = MessageSerializer()
     serializer.enque_data(serialized)

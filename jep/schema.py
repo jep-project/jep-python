@@ -20,7 +20,7 @@ class BackendAlive(Message):
 
 
 class ContentSync(Message):
-    def __init__(self, file: str, data: bytes, start: int=0, end: int=None):
+    def __init__(self, file: str, data: str, start: int=0, end: int=None):
         super().__init__()
         self.file = file
         self.start = start
@@ -107,7 +107,7 @@ class SemanticType(enum.Enum):
 
 
 class CompletionOption(Serializable):
-    def __init__(self, insert: bytes, desc: str=None, longDesc: str=None, semantics: SemanticType=None, extensionId: str=None):
+    def __init__(self, insert: str, desc: str=None, longDesc: str=None, semantics: SemanticType=None, extensionId: str=None):
         super().__init__()
         self.insert = insert
         self.desc = desc
