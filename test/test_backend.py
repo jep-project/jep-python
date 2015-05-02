@@ -3,8 +3,9 @@ from unittest import mock
 import datetime
 import pytest
 from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendConnection, TIMEOUT_BACKEND_ALIVE, TIMEOUT_LAST_MESSAGE
+from jep.content import SynchronizationResult
 from jep.protocol import MessageSerializer
-from jep.schema import Shutdown, BackendAlive, CompletionRequest
+from jep.schema import Shutdown, BackendAlive, CompletionRequest, ContentSync
 from test.logconfig import configure_test_logger
 
 
@@ -187,3 +188,50 @@ def test_frontend_timeout(mock_datetime_mod):
     backend.ts_alive_sent = now
     backend._cyclic()
     assert mock_clientsocket1.close.called
+
+
+def test_propagate_content_sync():
+    mock_clientsocket = mock.MagicMock()
+    mock_clientsocket.recv = mock.MagicMock(side_effect=[MessageSerializer().serialize(ContentSync('/path/to/file', 'new content', 17, 21)), BlockingIOError])
+    mock_clientsocket.send = mock.MagicMock()
+    mock_listener = mock.MagicMock()
+    backend = Backend([mock_listener])
+    mock_content_monitor = mock.MagicMock()
+    mock_content_monitor.synchronize = mock.MagicMock(return_value=SynchronizationResult.Updated)
+    backend.connection[mock_clientsocket] = FrontendConnection(backend, mock_clientsocket, content_monitor=mock_content_monitor)
+
+    backend._receive(mock_clientsocket)
+
+    # listeners are called:
+    mock_listener.on_content_sync.assert_called_once()
+    mock_content_monitor.synchronize.assert_called_once_with('/path/to/file', 'new content', 17, 21)
+    assert not mock_clientsocket.send.called
+
+    arg = mock_listener.on_content_sync.call_args[0][0]
+    assert isinstance(arg, ContentSync)
+    assert arg.file == '/path/to/file'
+    assert arg.data == 'new content'
+    assert arg.start == 17
+    assert arg.end == 21
+
+
+def test_propagate_content_sync_out_of_sync():
+    mock_clientsocket = mock.MagicMock()
+    mock_clientsocket.recv = mock.MagicMock(side_effect=[MessageSerializer().serialize(ContentSync('/path/to/file', 'new content', 17, 21)), BlockingIOError])
+    mock_clientsocket.send = mock.MagicMock()
+    mock_listener = mock.MagicMock()
+    backend = Backend([mock_listener])
+    mock_content_monitor = mock.MagicMock()
+    mock_content_monitor.synchronize = mock.MagicMock(return_value=SynchronizationResult.OutOfSync)
+    backend.connection[mock_clientsocket] = FrontendConnection(backend, mock_clientsocket, content_monitor=mock_content_monitor)
+
+    backend._receive(mock_clientsocket)
+
+    # listeners are called:
+    mock_listener.on_content_sync.assert_called_once()
+    mock_content_monitor.synchronize.assert_called_once_with('/path/to/file', 'new content', 17, 21)
+    mock_clientsocket.send.assert_called_once()
+
+    arg = mock_clientsocket.send.call_args[0][0]
+    assert b'OutOfSync' in arg
+

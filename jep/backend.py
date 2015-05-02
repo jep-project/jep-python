@@ -5,6 +5,7 @@ import logging
 import socket
 import select
 from jep.config import TIMEOUT_SELECT_SEC, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
+from jep.content import ContentMonitor, SynchronizationResult
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync
 
@@ -158,12 +159,14 @@ class Backend(FrontendListener):
 
         for msg in frontend_connector.serializer:
             _logger.debug('Received message: %s' % msg)
+
+            # first let backend handle the message, e.g. to preprocess incoming data:
+            msg.invoke(self, frontend_connector)
+
+            # then pass it to user listeners:
             for listener in self.listeners:
                 # call listener's message specific handler method (visitor pattern's accept() call):
                 msg.invoke(listener, frontend_connector)
-
-            # call backend directly for internally handled messages:
-            msg.invoke(self, frontend_connector)
 
     def _close(self, sock):
         _logger.info('Socket %d disconnected.' % id(sock))
@@ -207,30 +210,18 @@ class Backend(FrontendListener):
         self.stop()
 
     def on_content_sync(self, content_sync: ContentSync, context):
-        content = self.content_by_filepath[content_sync.file]
-        length = len(content)
+        """Keeps track of file content through data sent by frontend."""
 
-        if content_sync.start > length:
-            _logger.warning('Received content sync for %s starting at index %d but known content length is only %d.' % (content_sync.file, content_sync.start, length))
+        result = context.content_monitor.synchronize(content_sync.file, content_sync.data, content_sync.start, content_sync.end)
+
+        if result == SynchronizationResult.OutOfSync:
             context.send_message(OutOfSync(content_sync.file))
-            return
-
-        start = content_sync.start
-        end = content_sync.end if content_sync.end is not None else length
-
-        if start < 0:
-            start = 0
-        if end < 0:
-            end = 0
-
-        _logger.debug('Updating file %s from index %d to %d: %s' % (content_sync.file, start, end, content_sync.data))
-        content[start:end] = content_sync.data
 
 
 class FrontendConnection:
     """Connection to frontend instance."""
 
-    def __init__(self, service, sock, serializer=None):
+    def __init__(self, service, sock, serializer=None, content_monitor=None):
         # Backend instance that created this connection.
         self.service = service
         # Socket used to talk to frontend.
@@ -240,6 +231,9 @@ class FrontendConnection:
 
         #: Serializer used to decode data from frontend.
         self.serializer = serializer or MessageSerializer()
+
+        #: Content monitor for synchronized file data sent by connected frontend.
+        self.content_monitor = content_monitor or ContentMonitor()
 
     def send_message(self, msg):
         self.service.send_message(self, msg)
