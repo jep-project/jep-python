@@ -1,5 +1,6 @@
 """Start script for JEP backend service."""
 import sys
+from jep.schema import CompletionResponse, CompletionRequest, CompletionOption
 
 try:
     import jep as jeptestimport
@@ -46,6 +47,9 @@ _logger = logging.getLogger('jep.backend.sample')
 class Listener(FrontendListener):
     def on_shutdown(self, context):
         _logger.info('Received shutdown in listener.')
+
+    def on_completion_request(self, completion_request: CompletionRequest, context):
+        context.send_message(CompletionResponse(completion_request.token, completion_request.pos, 0, False, [CompletionOption('cpl', 'Something', 'Something to complete')]))
 
 
 Backend([Listener()]).start()
