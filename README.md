@@ -26,6 +26,20 @@ backend.start()
 
 Callbacks that are not needed by a certain listener do not need to be overridden in the derived class.
 
+While the user is editing a file in a connected IDE the frontend will repeatedly send `ContentSync` objects to the backend.
+The backend implementation already processes these messages internally and provides an accumulated file view to client code.
+Since backend-internal message processing is done _before_ messages are passed to subscribed listeners, you can process the
+latest view of a file directly inside your listener's handler of `ContentSync` by accessing the context's `content_monitor`
+filepath dictionary:
+
+```python
+def on_content_sync(self, content_sync, context):
+    # get the content monitor's view of the file that was just updated:
+    file_content = context.content_monitor[content_sync.file]
+    
+    # ...
+```
+
 ## Frontend support
 
 Similarly in an IDE frontend you again derive listener classes, this time listening to backend messages. Since the frontend initiates the connection
