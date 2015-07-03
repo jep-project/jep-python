@@ -58,6 +58,7 @@ class Frontend:
                     _logger.debug('Using existing connection.')
                     if connection.state is State.Disconnected:
                         # reattempt to connect:
+                        _logger.debug('   ...and reconnecting it.')
                         connection.connect()
             else:
                 _logger.debug('Creating new connection.')
@@ -184,6 +185,7 @@ class BackendConnection:
             _logger.warning('In state %s no messages are sent to backend, but received request to send %s.' % (self.state, message))
 
     def _run_disconnected(self, duration):
+        #_logger.debug('Not doing anything while disconnected, but reconnect expected is %s' % self._reconnect_expected)
         pass
 
     def _run_connecting(self, duration):
