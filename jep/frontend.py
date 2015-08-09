@@ -11,11 +11,12 @@ import shlex
 import datetime
 import os
 from os import path
+import uuid
 
 from jep.async import AsynchronousFileReader
 from jep.config import ServiceConfigProvider, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
 from jep.protocol import MessageSerializer
-from jep.schema import Shutdown
+from jep.schema import Shutdown, TOKEN_ATTR_NAME
 
 _logger = logging.getLogger(__name__)
 
@@ -106,6 +107,10 @@ class BackendConnection:
         }
         #: Does the user expect the connection to be reestablished e.g. after the backend died?
         self._reconnect_expected = False
+        #: Token used for pending request.
+        self._current_request_token = None
+        #: Message received as response to pending request.
+        self._current_request_response = None
 
     def connect(self):
         """Opens connection to backend service."""
@@ -142,7 +147,7 @@ class BackendConnection:
         except Exception as e:
             _logger.warning('Failed to start backend service with command "%s" in directory %s with exception %s.' % (self.service_config.command, cwd, e))
             # prevent recursion:
-            self._reconnect_expected=False
+            self._reconnect_expected = False
             self._cleanup()
 
     def disconnect(self):
@@ -164,9 +169,13 @@ class BackendConnection:
         now = datetime.datetime.now()
         endtime = now + duration
 
-        while now < endtime:
+        response_expected = self._current_request_token is not None and self._current_request_response is None
+        response_received = False
+
+        while now < endtime and (not response_expected or not response_received):
             self._dispatch(endtime - now)
             now = datetime.datetime.now()
+            response_received = self._current_request_response is not None
 
     def _dispatch(self, duration):
         """State dispatch, extracted out for testability."""
@@ -183,6 +192,49 @@ class BackendConnection:
                 _logger.warning('Sending message failed: %s' % e)
         else:
             _logger.warning('In state %s no messages are sent to backend, but received request to send %s.' % (self.state, message))
+
+    def request_message(self, message, duration):
+        """Sends a request message and waits synchronously for the response from backend.
+
+        While waiting, other asynchronous messages may be received and processed, but only one synchronous request may be active at a given time (for now). The functions
+        returns immediately upon reception of the response or after waiting for the given timeout period.
+
+        Synchronous invocation is only possible for message types that have a dedicated response message type and therefore carry a request ``token`` attribute. The
+        method should be used only in situations where the frontend host (e.g. the IDE) demands synchronous processing, e.g. to get immediate feedback for possible
+        code completion options.
+
+        If the request class' token attribute is still ``None`` it is filled with a unique ID by this method. If it holds a value that value is used and the caller is
+        responsible for uniqueness (in most general case at backend level).
+
+        :param request_message: The request message to be sent to backend. The underlying message class must have a ``token`` attribute.
+        :param duration: Maximal period to wait for response.
+        :return: Response message object of ``None``.
+        """
+
+        # currently only one active request is possible:
+        if self._current_request_token is not None:
+            _logger.warning('Already service a request with token %s, so new request is skipped.' % self._current_request_token)
+
+        if self.state is State.Connected:
+            # make sure message object has token attribute and fill it if necessary:
+            token = getattr(message, TOKEN_ATTR_NAME)
+            if token is None:
+                token = uuid.uuid1().hex
+                _logger.debug('Assigning request token %s.' % token)
+                setattr(message, TOKEN_ATTR_NAME, token)
+
+            self._current_request_token = token
+            self.send_message(message)
+            _logger.debug('Waiting for response message.')
+            self.run(duration)
+            self._current_request_token = None
+            response = self._current_request_response
+            self._current_request_response = None
+
+            return response
+        else:
+            _logger.warning('Skipping request message, since connector is not connected.')
+            return None
 
     def _run_disconnected(self, duration):
         #_logger.debug('Not doing anything while disconnected, but reconnect expected is %s' % self._reconnect_expected)
@@ -278,6 +330,17 @@ class BackendConnection:
             for listener in self.listeners:
                 # call listener's message specific handler method (visitor pattern's accept() call):
                 msg.invoke(listener, self)
+
+            # handle response messages:
+            if self._current_request_token is not None:
+                self.check_response_message(msg)
+
+    def check_response_message(self, msg):
+        token = getattr(msg, 'token', None)
+        if token == self._current_request_token:
+            _logger.debug('Received response message for token %s.' % token)
+            self._current_request_token = None
+            self._current_request_response = msg
 
     def _cleanup(self, duration=datetime.timedelta(seconds=0.01)):
         """Internal hard disconnect. Ensures all resources (sockets, processes, threads) are released."""

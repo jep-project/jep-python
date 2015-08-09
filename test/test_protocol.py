@@ -70,7 +70,7 @@ def test_message_serializer_serialize_out_of_sync(observable_serializer):
 
 
 def test_message_serializer_serialize_completion_request(observable_serializer):
-    packed = observable_serializer.serialize(CompletionRequest('thetoken', 'thefile', 10, 17))
+    packed = observable_serializer.serialize(CompletionRequest('thefile', 10, 17, 'thetoken'))
     observable_serializer.packer.dumps.assert_called_once_with(dict(_message='CompletionRequest', file='thefile', token='thetoken', pos=10, limit=17))
     # TODO assert packed==...
 
@@ -93,8 +93,9 @@ def test_message_serializer_serialize_problem_update(observable_serializer):
 
 
 def test_message_serializer_serialize_completion_response(observable_serializer):
-    msg = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('display', 'thedescription', semantics=SemanticType.string, extensionId='theExtId'),
-                                                        CompletionOption('display2', 'thedescription2', semantics=SemanticType.identifier, extensionId='theExtId2')])
+    msg = CompletionResponse(11, 12, True, [CompletionOption('display', 'thedescription', semantics=SemanticType.string, extensionId='theExtId'),
+                                            CompletionOption('display2', 'thedescription2', semantics=SemanticType.identifier, extensionId='theExtId2')],
+                             'thetoken')
 
     packed = observable_serializer.serialize(msg)
 
@@ -134,8 +135,9 @@ def test_message_serializer_deserialize_completion_response():
 
     msg = serializer.deserialize(packed)
 
-    expected = CompletionResponse('thetoken', 11, 12, True, [CompletionOption('insert', 'thedescription', semantics=SemanticType.string, extensionId='theExtId'),
-                                                             CompletionOption('insert2', 'thedescription2', semantics=SemanticType.identifier, extensionId='theExtId2')])
+    expected = CompletionResponse(11, 12, True, [CompletionOption('insert', 'thedescription', semantics=SemanticType.string, extensionId='theExtId'),
+                                                 CompletionOption('insert2', 'thedescription2', semantics=SemanticType.identifier, extensionId='theExtId2')],
+                                  'thetoken')
 
     # avoid implementation of eq in schema classes, so rely on correct serialization for now:
     assert serializer.serialize(msg) == serializer.serialize(expected)
@@ -144,8 +146,8 @@ def test_message_serializer_deserialize_completion_response():
 def test_message_serializer_enqueue_dequeue():
     serializer = MessageSerializer()
 
-    serializer.enque_data(serializer.serialize(CompletionResponse('token', 1, 2, False)))
-    serializer.enque_data(serializer.serialize(CompletionResponse('token2', 3, 4, True)))
+    serializer.enque_data(serializer.serialize(CompletionResponse(1, 2, False, (),'token')))
+    serializer.enque_data(serializer.serialize(CompletionResponse(3, 4, True, (), 'token2')))
 
     assert serializer.buffer
 
@@ -172,7 +174,7 @@ def test_message_serializer_enqueue_dequeue():
 
 def test_message_serializer_enqueue_dequeue_incomplete():
     serializer = MessageSerializer()
-    packed = serializer.serialize(CompletionResponse('token', 1, 2, False))
+    packed = serializer.serialize(CompletionResponse(1, 2, False))
     assert len(packed) > 1
 
     for b in packed:
@@ -186,8 +188,8 @@ def test_message_serializer_enqueue_dequeue_incomplete():
 def test_message_serializer_message_iterator():
     serializer = MessageSerializer()
 
-    serializer.enque_data(serializer.serialize(CompletionResponse('token', 1, 2, False)))
-    serializer.enque_data(serializer.serialize(CompletionResponse('token2', 3, 4, True)))
+    serializer.enque_data(serializer.serialize(CompletionResponse(1, 2, False)))
+    serializer.enque_data(serializer.serialize(CompletionResponse(3, 4, True)))
 
     count = 0
     for msg in serializer:

@@ -49,7 +49,11 @@ class Listener(FrontendListener):
         _logger.info('Received shutdown in listener.')
 
     def on_completion_request(self, completion_request: CompletionRequest, context):
-        context.send_message(CompletionResponse(completion_request.token, completion_request.pos, 0, False, [CompletionOption('cpltextthatisveryverylongmuchlongerthan', 'Something', 'Something to complete')]))
+        context.send_message(CompletionResponse(completion_request.pos,
+                                                0,
+                                                False,
+                                                [CompletionOption('cpltextthatisveryverylongmuchlongerthan', 'Something', 'Something to complete')],
+                                                completion_request.token))
 
 
 Backend([Listener()]).start()

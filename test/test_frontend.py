@@ -4,6 +4,7 @@ import queue
 from unittest import mock
 import datetime
 import itertools
+import pytest
 from jep.config import TIMEOUT_LAST_MESSAGE
 from jep.frontend import Frontend, State, BackendConnection, TIMEOUT_BACKEND_STARTUP, TIMEOUT_BACKEND_SHUTDOWN
 from jep.schema import Shutdown, BackendAlive
@@ -566,3 +567,27 @@ def test_backend_connected_receive_data_exception(mock_os_module, mock_datetime_
     connection.run(datetime.timedelta(seconds=2))
     # backend tries to reconnect:
     assert connection.state is State.Connecting
+
+
+def test_backend_connection_request_message_no_token_attribute():
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS)
+    connection.state = State.Connected
+    with pytest.raises(AttributeError):
+        connection.request_message(Shutdown(), mock.sentinel.DURATION)
+
+
+def test_backend_connection_request_message_ok():
+    mock_serializer = mock.MagicMock()
+    mock_serializer.serialize = mock.MagicMock(return_value=mock.sentinel.SERIALIZED)
+    mock_socket = mock.MagicMock()
+    mock_socket.send = mock.MagicMock()
+
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS, serializer=mock_serializer)
+    connection._socket = mock_socket
+    connection.state = State.Connected
+
+    # we have a socket and are connected, so sending the message must go through just fine:
+    connection.request_message(mock.sentinel.MESSAGE)
+
+    mock_serializer.serialize.assert_called_once_with(mock.sentinel.MESSAGE)
+    mock_socket.send.assert_called_once_with(mock.sentinel.SERIALIZED)

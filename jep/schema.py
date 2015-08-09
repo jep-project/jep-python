@@ -2,6 +2,9 @@
 import enum
 from jep.serializer import Serializable
 
+#: Name of token attribute for request/response messages.
+TOKEN_ATTR_NAME = 'token'
+
 
 class Message(Serializable):
     def invoke(self, listener, context):
@@ -78,7 +81,7 @@ class ProblemUpdate(Message):
 
 
 class CompletionRequest(Message):
-    def __init__(self, token: str, file: str, pos: int, limit: int=None):
+    def __init__(self, file: str, pos: int, limit: int=None, token: str=None):
         super().__init__()
         self.token = token
         self.file = file
@@ -117,7 +120,7 @@ class CompletionOption(Serializable):
 
 
 class CompletionResponse(Message):
-    def __init__(self, token: str, start: int, end: int, limitExceeded: bool=False, options: [CompletionOption]=()):
+    def __init__(self, start: int, end: int, limitExceeded: bool=False, options: [CompletionOption]=(), token: str=None):
         super().__init__()
         self.token = token
         self.start = start
