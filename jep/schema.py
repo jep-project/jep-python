@@ -133,9 +133,36 @@ class CompletionResponse(Message):
 
 
 class CompletionInvocation(Message):
-    def __init__(self, extensionId):
+    def __init__(self, extensionId: str=None):
         super().__init__()
         self.extensionId = extensionId
 
     def invoke(self, listener, context):
         listener.on_completion_invocation(self, context)
+
+
+@enum.unique
+class SyntaxFormatType(enum.Enum):
+    textmate = 1
+    vim = 2
+
+
+class StaticSyntaxRequest(Message):
+    def __init__(self, format: SyntaxFormatType, fileExtensions: [str]=()):
+        super().__init__()
+        self.format = format
+        self.fileExtensions = fileExtensions
+
+
+class StaticSyntax(Message):
+    def __init__(self, fileExtension: str, definition: str):
+        super().__init__()
+        self.fileExtension = fileExtension
+        self.definition = definition
+
+
+class StaticSyntaxList(Message):
+    def __init__(self, format: SyntaxFormatType, syntaxes: [StaticSyntax]=()):
+        super().__init__()
+        self.format = format
+        self.syntaxes = syntaxes
