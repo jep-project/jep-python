@@ -7,7 +7,7 @@ import itertools
 import pytest
 from jep.config import TIMEOUT_LAST_MESSAGE
 from jep.frontend import Frontend, State, BackendConnection, TIMEOUT_BACKEND_STARTUP, TIMEOUT_BACKEND_SHUTDOWN
-from jep.schema import Shutdown, BackendAlive
+from jep.schema import Shutdown, BackendAlive, CompletionResponse, CompletionRequest
 from test.logconfig import configure_test_logger
 
 
@@ -576,18 +576,142 @@ def test_backend_connection_request_message_no_token_attribute():
         connection.request_message(Shutdown(), mock.sentinel.DURATION)
 
 
-def test_backend_connection_request_message_ok():
-    mock_serializer = mock.MagicMock()
-    mock_serializer.serialize = mock.MagicMock(return_value=mock.sentinel.SERIALIZED)
-    mock_socket = mock.MagicMock()
-    mock_socket.send = mock.MagicMock()
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.select')
+@mock.patch('jep.frontend.datetime')
+@mock.patch('jep.frontend.os')
+def test_backend_connected_run_for_duration(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+    connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
-    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS, serializer=mock_serializer)
-    connection._socket = mock_socket
-    connection.state = State.Connected
+    # prepare no data ready for reception:
+    mock_select_module.select = mock.MagicMock(return_value=([], [], []))
 
-    # we have a socket and are connected, so sending the message must go through just fine:
-    connection.request_message(mock.sentinel.MESSAGE)
+    decorate_connection_state_dispatch(connection, 0.1, mock_datetime_module)
+    now = mock_datetime_module.datetime.now()
+    connection.run(datetime.timedelta(seconds=1))
 
-    mock_serializer.serialize.assert_called_once_with(mock.sentinel.MESSAGE)
-    mock_socket.send.assert_called_once_with(mock.sentinel.SERIALIZED)
+    # without anything happening, the connection was simply run for the whole duration:
+    assert mock_datetime_module.datetime.now() == now + datetime.timedelta(seconds=1)
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.select')
+@mock.patch('jep.frontend.datetime')
+@mock.patch('jep.frontend.os')
+def test_backend_connected_run_without_response_received(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+    connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
+
+    # set internal token of request:
+    connection._current_request_token = mock.sentinel.TOKEN
+    connection._current_request_response = None
+
+    # prepare no data ready for reception:
+    mock_select_module.select = mock.MagicMock(return_value=([], [], []))
+
+    decorate_connection_state_dispatch(connection, 0.1, mock_datetime_module)
+    now = mock_datetime_module.datetime.now()
+    connection.run(datetime.timedelta(seconds=1))
+
+    # also when waiting for response (and it's not coming) the connection is run for the complete duration:
+    assert mock_datetime_module.datetime.now() == now + datetime.timedelta(seconds=1)
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.select')
+@mock.patch('jep.frontend.datetime')
+@mock.patch('jep.frontend.os')
+def test_backend_connected_run_wit__other_response_received(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+    connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
+
+    # set internal token of request:
+    connection._current_request_token = mock.sentinel.TOKEN
+    connection._current_request_response = None
+
+    # prepare data ready for reception:
+    mock_select_module.select = mock.MagicMock(return_value=([mock_socket], [], []))
+    mock_socket.recv = mock.MagicMock(side_effect=iterate_first_and_then(mock.sentinel.SERIALIZED, BlockingIOError))
+    mock_serializer.__iter__ = mock.Mock(return_value=iter([CompletionResponse(0, 1, token=mock.sentinel.OTHER_TOKEN)]))
+
+    decorate_connection_state_dispatch(connection, 0.1, mock_datetime_module)
+    now = mock_datetime_module.datetime.now()
+    connection.run(datetime.timedelta(seconds=1))
+
+    # also when waiting for response (and it's not coming) the connection is run for the complete duration:
+    assert mock_datetime_module.datetime.now() == now + datetime.timedelta(seconds=1)
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.select')
+@mock.patch('jep.frontend.datetime')
+@mock.patch('jep.frontend.os')
+def test_backend_connected_run_with_response_received(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+    connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
+
+    # set internal token of request:
+    connection._current_request_token = mock.sentinel.TOKEN
+    connection._current_request_response = None
+
+    # prepare data ready for reception:
+    mock_select_module.select = mock.MagicMock(return_value=([mock_socket], [], []))
+    mock_socket.recv = mock.MagicMock(side_effect=iterate_first_and_then(mock.sentinel.SERIALIZED, BlockingIOError))
+    mock_serializer.__iter__ = mock.Mock(return_value=iter([CompletionResponse(0, 1, token=mock.sentinel.TOKEN)]))
+
+    decorate_connection_state_dispatch(connection, 0.1, mock_datetime_module)
+    now = mock_datetime_module.datetime.now()
+    connection.run(datetime.timedelta(seconds=1))
+
+    # run returns immediately if the correctly tokenized message is received:
+    assert mock_datetime_module.datetime.now() == now + datetime.timedelta(seconds=0.1)
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.select')
+@mock.patch('jep.frontend.datetime')
+@mock.patch('jep.frontend.os')
+def test_backend_connected_request_message_without_response(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+    connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
+
+    # prepare no data ready for reception:
+    mock_select_module.select = mock.MagicMock(return_value=([], [], []))
+
+    request = CompletionRequest('file', 0)
+
+    decorate_connection_state_dispatch(connection, 0.1, mock_datetime_module)
+    now = mock_datetime_module.datetime.now()
+    connection.request_message(request, datetime.timedelta(seconds=1))
+
+    assert request.token is not None
+
+    # make sure request was sent:
+    mock_serializer.serialize.assert_called_once_with(request)
+
+    # when waiting for response (and it's not coming) the connection is run for the complete duration:
+    assert mock_datetime_module.datetime.now() == now + datetime.timedelta(seconds=1)
+
+
+@mock.patch('jep.frontend.subprocess')
+@mock.patch('jep.frontend.socket')
+@mock.patch('jep.frontend.select')
+@mock.patch('jep.frontend.datetime')
+@mock.patch('jep.frontend.os')
+def test_backend_connected_request_message_with_response(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+    connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
+
+    # prepare data ready for reception:
+    mock_select_module.select = mock.MagicMock(return_value=([mock_socket], [], []))
+    mock_socket.recv = mock.MagicMock(side_effect=iterate_first_and_then(mock.sentinel.SERIALIZED, BlockingIOError))
+    mock_serializer.__iter__ = mock.Mock(return_value=iter([CompletionResponse(0, 1, token=mock.sentinel.TOKEN)]))
+
+    request = CompletionRequest('file', 0, token=mock.sentinel.TOKEN)
+
+    decorate_connection_state_dispatch(connection, 0.1, mock_datetime_module)
+    now = mock_datetime_module.datetime.now()
+    connection.request_message(request, datetime.timedelta(seconds=1))
+
+    # synchronous call returns immediately upon reception of response with correct token:
+    assert mock_datetime_module.datetime.now() == now + datetime.timedelta(seconds=0.1)
