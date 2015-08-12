@@ -47,6 +47,9 @@ class FrontendListener:
     def on_completion_invocation(self, completion_invocation, context):
         return NotImplemented
 
+    def on_static_syntax_request(self, format, fileExtensions, context):
+        return NotImplemented
+
 
 class Backend(FrontendListener):
     """Synchronous JEP backend service."""

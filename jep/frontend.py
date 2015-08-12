@@ -410,3 +410,6 @@ class BackendListener:
 
     def on_completion_response(self, completion_response, context):
         return NotImplemented
+
+    def on_static_syntax_list(self, format_, syntaxes, context):
+        return NotImplemented
