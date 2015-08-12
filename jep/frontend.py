@@ -92,7 +92,7 @@ class BackendConnection:
     def __init__(self, service_config, listeners, serializer=None, provide_async_reader=None):
         self.service_config = service_config
         self.listeners = listeners
-        self.state = State.Disconnected
+        self._state = State.Disconnected
         self._serializer = serializer or MessageSerializer()
         self._provide_async_reader = provide_async_reader or AsynchronousFileReader
         self._process = None
@@ -111,6 +111,18 @@ class BackendConnection:
         self._current_request_token = None
         #: Message received as response to pending request.
         self._current_request_response = None
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, next_state):
+        old_state = self._state
+        self._state = next_state
+        if next_state is not old_state:
+            for listener in self.listeners:
+                listener.on_connection_state_changed(old_state, next_state, self)
 
     def connect(self):
         """Opens connection to backend service."""
@@ -327,8 +339,9 @@ class BackendConnection:
 
         for msg in self._serializer:
             _logger.debug('Received message: %s' % msg)
+
+            # call listeners' message specific handler methods (visitor pattern's accept() call):
             for listener in self.listeners:
-                # call listener's message specific handler method (visitor pattern's accept() call):
                 msg.invoke(listener, self)
 
             # handle response messages:
@@ -395,6 +408,9 @@ class BackendConnection:
 
 class BackendListener:
     """API to listen to messages from backend, communicated by frontend."""
+
+    def on_connection_state_changed(self, old_state, new_state, context):
+        return NotImplemented
 
     def on_backend_alive(self, context):
         return NotImplemented

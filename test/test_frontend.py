@@ -152,7 +152,7 @@ def test_backend_connection_send_message_ok():
     mock_socket = mock.MagicMock()
     mock_socket.send = mock.MagicMock()
 
-    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS, serializer=mock_serializer)
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, [], serializer=mock_serializer)
     connection._socket = mock_socket
     connection.state = State.Connected
 
@@ -169,7 +169,7 @@ def test_backend_connection_send_message_wrong_state():
     mock_socket = mock.MagicMock()
     mock_socket.send = mock.MagicMock()
 
-    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS, serializer=mock_serializer)
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, [], serializer=mock_serializer)
     connection._socket = mock_socket
 
     # no message is sent in any state that is not connected:
@@ -186,7 +186,7 @@ def test_backend_connection_send_message_serialization_failed():
     mock_socket = mock.MagicMock()
     mock_socket.send = mock.MagicMock()
 
-    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS, serializer=mock_serializer)
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, [], serializer=mock_serializer)
     connection._socket = mock_socket
     connection.state = State.Connected
 
@@ -201,7 +201,7 @@ def test_backend_connection_send_message_send_failed():
     mock_socket = mock.MagicMock()
     mock_socket.send = mock.MagicMock(NotImplementedError)
 
-    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS, serializer=mock_serializer)
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, [], serializer=mock_serializer)
     connection._socket = mock_socket
     connection.state = State.Connected
 
@@ -245,7 +245,8 @@ def test_backend_connection_connect(mock_os_module, mock_datetime_module, mock_s
 
     mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
                                                                                                                mock_subprocess_module, now)
-    connection = BackendConnection(mock_service_config, [], mock.sentinel.SERIALIZER, mock_provide_async_reader)
+    mock_listener = mock.MagicMock()
+    connection = BackendConnection(mock_service_config, [mock_listener], mock.sentinel.SERIALIZER, mock_provide_async_reader)
     connection.connect()
 
     # process and reader thread were started and state is adapted:
@@ -275,6 +276,9 @@ def test_backend_connection_connect(mock_os_module, mock_datetime_module, mock_s
     assert mock_socket_module.create_connection.called
     assert mock_socket_module.create_connection.call_args[0][0] == ('localhost', 4711)
     assert connection.state is State.Connected
+
+    mock_listener.on_connection_state_changed.assert_has_calls([mock.call(State.Disconnected, State.Connecting, connection),
+                                                                mock.call(State.Connecting, State.Connected, connection)])
 
 
 @mock.patch('jep.frontend.subprocess')
@@ -570,7 +574,7 @@ def test_backend_connected_receive_data_exception(mock_os_module, mock_datetime_
 
 
 def test_backend_connection_request_message_no_token_attribute():
-    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, mock.sentinel.LISTENERS)
+    connection = BackendConnection(mock.sentinel.SERVICE_CONFIG, [])
     connection.state = State.Connected
     with pytest.raises(AttributeError):
         connection.request_message(Shutdown(), mock.sentinel.DURATION)
