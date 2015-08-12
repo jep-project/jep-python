@@ -1,12 +1,9 @@
-from test.logconfig import configure_test_logger
-
-try:
-    import umsgpack
-except ImportError:
-    from jep.contrib import umsgpack
-
 from unittest import mock
+
+import umsgpack
 import pytest
+
+from test.logconfig import configure_test_logger
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
     Severity, FileProblems, CompletionInvocation
@@ -146,7 +143,7 @@ def test_message_serializer_deserialize_completion_response():
 def test_message_serializer_enqueue_dequeue():
     serializer = MessageSerializer()
 
-    serializer.enque_data(serializer.serialize(CompletionResponse(1, 2, False, (),'token')))
+    serializer.enque_data(serializer.serialize(CompletionResponse(1, 2, False, (), 'token')))
     serializer.enque_data(serializer.serialize(CompletionResponse(3, 4, True, (), 'token2')))
 
     assert serializer.buffer
