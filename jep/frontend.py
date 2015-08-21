@@ -298,8 +298,8 @@ class BackendConnection:
             if self._socket:
                 self._socket.setblocking(0)
                 self._state_timer_reset = datetime.datetime.now()
-                self.state = State.Connected
                 _logger.info('Connected to backend command %s' % self.service_config.command)
+                self.state = State.Connected
 
                 # from now on, only the user can stop this connection for good:
                 self._reconnect_expected = True

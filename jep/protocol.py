@@ -2,23 +2,12 @@ import umsgpack
 
 import io
 import logging
-from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, ProblemUpdate, CompletionResponse
+from jep.schema import Message
 from jep.serializer import serialize_to_builtins, deserialize_from_builtins
 
 _logger = logging.getLogger(__name__)
 
 MESSAGE_KEY = '_message'
-
-# explicit map to allow class independent names in protocol:
-MESSAGE_CLASS_BY_NAME = {
-    'Shutdown': Shutdown,
-    'BackendAlive': BackendAlive,
-    'ContentSync': ContentSync,
-    'OutOfSync': OutOfSync,
-    'CompletionRequest': CompletionRequest,
-    'ProblemUpdate': ProblemUpdate,
-    'CompletionResponse': CompletionResponse
-}
 
 
 class MessageSerializer:
@@ -80,6 +69,5 @@ class MessageSerializer:
 
         obj = self.packer.load(f)
         datatypename = obj[MESSAGE_KEY]
-        message = deserialize_from_builtins(obj, MESSAGE_CLASS_BY_NAME[datatypename])
+        message = deserialize_from_builtins(obj, Message.class_by_name(datatypename))
         return message
-

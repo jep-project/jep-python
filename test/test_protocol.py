@@ -6,7 +6,7 @@ import pytest
 from test.logconfig import configure_test_logger
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
-    Severity, FileProblems, CompletionInvocation
+    Severity, FileProblems, CompletionInvocation, StaticSyntaxRequest
 
 
 def setup_function(function):
@@ -27,7 +27,7 @@ def test_message_serializer_deserialize_chain():
     mock_packer = mock.MagicMock()
     mock_packer.load = mock.MagicMock(return_value=dict(_message=mock.sentinel.MESSAGE_NAME))
     buffer = bytes(b'bytes')
-    with mock.patch('jep.protocol.MESSAGE_CLASS_BY_NAME', {mock.sentinel.MESSAGE_NAME: Shutdown}) as mock_class_by_msgname:
+    with mock.patch('jep.protocol.Message.class_by_name', lambda name: Shutdown) as mock_class_by_msgname:
         serializer = MessageSerializer(mock_packer)
         assert isinstance(serializer.deserialize(buffer), Shutdown)
         assert mock_packer.load.called
@@ -215,3 +215,13 @@ def test_regression_009_string_argument_without_encoding():
 
     message = next(iter(serializer))
     assert isinstance(message, ContentSync)
+
+
+def test_descode_static_syntax_request():
+    serialized = b'\x82\xa6format\xa8textmate\xa8_message\xb3StaticSyntaxRequest'
+
+    serializer = MessageSerializer()
+    serializer.enque_data(serialized)
+
+    message = next(iter(serializer))
+    assert isinstance(message, StaticSyntaxRequest)

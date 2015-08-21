@@ -7,9 +7,19 @@ TOKEN_ATTR_NAME = 'token'
 
 
 class Message(Serializable):
+    _class_by_name = None
+
     def invoke(self, listener, context):
         """Dispatch received message to listener. This is the accept() method of the visitor pattern."""
         raise NotImplementedError()
+
+    @classmethod
+    def class_by_name(cls, name):
+        """Dictionary of known (at least in this module) derived message classes by name."""
+        if cls._class_by_name is None:
+            # create on demand:
+            cls._class_by_name = {sc.__name__: sc for sc in cls.__subclasses__()}
+        return cls._class_by_name[name]
 
 
 class Shutdown(Message):
