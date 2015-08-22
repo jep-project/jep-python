@@ -163,8 +163,11 @@ class StaticSyntaxRequest(Message):
         self.format = format
         self.fileExtensions = fileExtensions
 
+    def invoke(self, listener, context):
+        listener.on_static_syntax_request(self.format, self.fileExtensions, context)
 
-class StaticSyntax(Message):
+
+class StaticSyntax(Serializable):
     def __init__(self, fileExtension: str, definition: str):
         super().__init__()
         self.fileExtension = fileExtension
@@ -176,3 +179,6 @@ class StaticSyntaxList(Message):
         super().__init__()
         self.format = format
         self.syntaxes = syntaxes
+
+    def invoke(self, listener, context):
+        listener.on_static_syntax_list(self.format, self.syntaxes, context)
