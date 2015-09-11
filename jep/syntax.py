@@ -14,7 +14,7 @@ class StaticSyntaxProvider:
     def register(self, syntax_filepath, *extensions):
         """Adds a new syntax definition file for the given file extensions."""
         assert syntax_filepath is not None, 'No syntax file specified.'
-        assert extensions, 'Extensions must be assiciated with syntax file %s.' % syntax_filepath
+        assert extensions, 'Extensions must be associated with syntax file %s.' % syntax_filepath
 
         for extension in extensions:
             self.extension_to_syntax_filepath_map[extension.lower()] = syntax_filepath

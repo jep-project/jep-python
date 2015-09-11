@@ -168,9 +168,9 @@ class StaticSyntaxRequest(Message):
 
 
 class StaticSyntax(Serializable):
-    def __init__(self, fileExtension: str, definition: str):
+    def __init__(self, fileExtensions: [str], definition: str):
         super().__init__()
-        self.fileExtension = fileExtension
+        self.fileExtensions = fileExtensions
         self.definition = definition
 
 
