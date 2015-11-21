@@ -8,6 +8,7 @@ from jep.config import TIMEOUT_SELECT_SEC, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
 from jep.content import ContentMonitor, SynchronizationResult
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync
+from jep.syntax import SyntaxFiles
 
 _logger = logging.getLogger(__name__)
 
@@ -54,9 +55,11 @@ class FrontendListener:
 class Backend(FrontendListener):
     """Synchronous JEP backend service."""
 
-    def __init__(self, listeners=None):
+    def __init__(self, listeners=None, *, syntax_file_manager=None):
         #: User message listeners.
         self.listeners = listeners or []
+        #: Registry of static syntax definitions.
+        self.syntax_files = syntax_file_manager or SyntaxFiles()
         #: Active sockets, [0] is the server socket.
         self.sockets = []
         #: Current state of backend.
@@ -220,11 +223,16 @@ class Backend(FrontendListener):
         if result == SynchronizationResult.OutOfSync:
             context.send_message(OutOfSync(content_sync.file))
 
+    def on_static_syntax_request(self, format, fileExtensions, context):
+        """Handle requests for static syntax definitions."""
+
+        pass
+
 
 class FrontendConnection:
     """Connection to frontend instance."""
 
-    def __init__(self, service, sock, serializer=None, content_monitor=None):
+    def __init__(self, service, sock, *, serializer=None, content_monitor=None):
         # Backend instance that created this connection.
         self.service = service
         # Socket used to talk to frontend.

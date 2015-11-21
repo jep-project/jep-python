@@ -33,7 +33,7 @@ TIMEOUT_BACKEND_SHUTDOWN = datetime.timedelta(seconds=5)
 class Frontend:
     """Top level frontend class, once to be instantiated per editor plugin."""
 
-    def __init__(self, listeners=None, service_config_provider=None, provide_backend_connection=None):
+    def __init__(self, listeners=None, *, service_config_provider=None, provide_backend_connection=None):
         self.listeners = listeners or []
         self.service_config_provider = service_config_provider or ServiceConfigProvider()
         self.provide_backend_connection = provide_backend_connection or BackendConnection
@@ -89,7 +89,7 @@ class State(enum.Enum):
 class BackendConnection:
     """Connection to a single backend service."""
 
-    def __init__(self, service_config, listeners, serializer=None, provide_async_reader=None):
+    def __init__(self, service_config, listeners, *, serializer=None, provide_async_reader=None):
         self.service_config = service_config
         self.listeners = listeners
         self._state = State.Disconnected
