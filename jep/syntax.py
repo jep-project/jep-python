@@ -1,37 +1,34 @@
-"""Management of syntax highlighting support by backend."""
-import os
+"""Management of code and DSL syntax definitions."""
+import collections
+
+SyntaxFile = collections.namedtuple('SyntaxFile', ['path', 'format', 'extensions'])
+SyntaxFile.__doc__ = "Container for reference to syntax file and the extensions it supports."
 
 
-class StaticSyntaxProvider:
-    """Keeps track of static syntax definitions held in backend and provides them to frontend.
-
-    Class may be used by frontend and backend implementations to store the syntax definitions provided by specific backend application to backend class and by frontend
-    class to frontend plugins."""
+class SyntaxFiles(collections.MutableSet):
+    """Collection of SyntaxFiles, with additional lookup of syntax by extension."""
 
     def __init__(self):
-        self.extension_to_syntax_filepath_map = {}
+        self.data = set()
+        #: Cache for syntax lookup by extension.
+        self.by_extension = dict()
 
-    def register(self, syntax_filepath, *extensions):
-        """Adds a new syntax definition file for the given file extensions."""
-        assert syntax_filepath is not None, 'No syntax file specified.'
-        assert extensions, 'Extensions must be associated with syntax file %s.' % syntax_filepath
+    def __contains__(self, x):
+        return x in self.data
 
-        for extension in extensions:
-            self.extension_to_syntax_filepath_map[extension.lower()] = syntax_filepath
+    def __iter__(self):
+        return iter(self.data)
 
-    def get_syntaxes(self, *extensions):
-        """Returns a dictionary of syntax files by extension."""
+    def __len__(self):
+        return len(self.data)
 
-        if not extensions:
-            # return full list of no selection is made:
-            return self.extension_to_syntax_filepath_map
-        else:
-            # return filtered map:
-            syntax_filepath_map = {}
+    def add(self, value):
+        self.data.add(value)
+        for extension in value.extensions:
+            self.by_extension[extension] = value
 
-            for extension in (e.lower() for e in extensions):
-                filepath = self.extension_to_syntax_filepath_map.get(extension)
-                if filepath:
-                    syntax_filepath_map[extension] = filepath
-
-            return syntax_filepath_map
+    def discard(self, value):
+        if value in self.data:
+            self.data.discard(value)
+            for extension in value.extensions:
+                self.by_extension.pop(extension)
