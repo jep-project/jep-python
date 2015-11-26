@@ -6,6 +6,7 @@ from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendCo
 from jep.content import SynchronizationResult
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, CompletionRequest, ContentSync
+from jep.syntax import SyntaxFile
 from test.logconfig import configure_test_logger
 
 
@@ -235,3 +236,14 @@ def test_propagate_content_sync_out_of_sync():
     arg = mock_clientsocket.send.call_args[0][0]
     assert b'OutOfSync' in arg
 
+
+def test_static_syntax_registration():
+    mock_syntax_fileset = mock.MagicMock()
+    backend = Backend(syntax_fileset=mock_syntax_fileset)
+
+    backend.register_static_syntax(mock.sentinel.PATH1, mock.sentinel.FORMAT1, mock.sentinel.extensions)
+    mock_syntax_fileset.add_syntax_file.assert_called_once_with(mock.sentinel.PATH1, mock.sentinel.FORMAT1, (mock.sentinel.extensions,))
+
+
+def test_on_static_syntax_request():
+    assert False

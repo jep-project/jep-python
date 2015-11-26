@@ -57,6 +57,14 @@ def test_syntax_file_set_add():
     assert sfiles.extension_map['extb2'].path == mock.sentinel.PATHB
 
 
+def test_syntax_file_set_add_syntax_file():
+    sfiles = SyntaxFileSet()
+    sfiles.add_syntax_file(mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2'))
+    assert len(sfiles) == 1
+    s = SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2'))
+    assert s in sfiles
+
+
 def test_syntax_file_set_remove():
     sfiles = SyntaxFileSet()
     sfiles.add(SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2')))

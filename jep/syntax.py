@@ -57,6 +57,9 @@ class SyntaxFileSet(collections.MutableSet):
         for extension in value.extensions:
             self.extension_map[extension] = value
 
+    def add_syntax_file(self, path, fileformat, extensions):
+        self.add(SyntaxFile(path, fileformat, extensions))
+
     def discard(self, value):
         if value in self.data:
             self.data.discard(value)

@@ -7,8 +7,8 @@ import select
 from jep.config import TIMEOUT_SELECT_SEC, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
 from jep.content import ContentMonitor, SynchronizationResult
 from jep.protocol import MessageSerializer
-from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync
-from jep.syntax import SyntaxFiles
+from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, StaticSyntaxList, StaticSyntax
+from jep.syntax import SyntaxFileSet, SyntaxFile
 
 _logger = logging.getLogger(__name__)
 
@@ -55,11 +55,11 @@ class FrontendListener:
 class Backend(FrontendListener):
     """Synchronous JEP backend service."""
 
-    def __init__(self, listeners=None, *, syntax_file_manager=None):
+    def __init__(self, listeners=None, *, syntax_fileset=None):
         #: User message listeners.
         self.listeners = listeners or []
         #: Registry of static syntax definitions.
-        self.syntax_files = syntax_file_manager or SyntaxFiles()
+        self.syntax_fileset = syntax_fileset or SyntaxFileSet()
         #: Active sockets, [0] is the server socket.
         self.sockets = []
         #: Current state of backend.
@@ -92,6 +92,13 @@ class Backend(FrontendListener):
     def stop(self):
         _logger.debug('Received request to shut down.')
         self.state = State.ShutdownPending
+
+    def register_static_syntax(self, path, fileformat, *extensions):
+        """Adds a new static syntax file to the backend's registry for pickup by the frontend.
+
+        Should usually be called before the backend is started and connections are made.
+        """
+        self.syntax_fileset.add_syntax_file(path, fileformat, extensions)
 
     def _listen(self):
         """Set up server socket to listen for incoming connections."""
@@ -224,9 +231,15 @@ class Backend(FrontendListener):
             context.send_message(OutOfSync(content_sync.file))
 
     def on_static_syntax_request(self, format, fileExtensions, context):
-        """Handle requests for static syntax definitions."""
-
-        pass
+        """Handle requests for static syntax definitions, expected to be in normalized form."""
+        _logger.debug('Received syntax request in format {} for extensions {}.'.format(format, ', '.join(fileExtensions)))
+        filtered = self.syntax_fileset.filtered(format, fileExtensions)
+        if filtered:
+            _logger.debug('Returning {} matching syntax definitions.'.format(len(filtered)))
+            msg = StaticSyntaxList(format, [StaticSyntax(sf.extentions, sf.definition) for sf in filtered])
+            context.send_message(msg)
+        else:
+            _logger.debug('Did not find any matching syntax definition.')
 
 
 class FrontendConnection:
