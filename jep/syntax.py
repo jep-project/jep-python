@@ -5,17 +5,27 @@ import collections
 class SyntaxFile:
     """Container for reference to syntax file and the extensions it supports."""
 
-    def __init__(self, path, format_, extensions):
+    def __init__(self, path, fileformat, extensions):
         self.path = path
-        self.format_ = format_
-        self.extensions = extensions
+        self.fileformat = fileformat
+        self.extensions = {self.normalized_extension(e) for e in extensions}
         self._definition = None
 
     def __eq__(self, other):
-        return self.path == other.path and self.format_ == other.format_ and self.extensions == other.extensions
+        return self.path == other.path and self.fileformat == other.fileformat and self.extensions == other.extensions
 
     def __hash__(self):
         return hash(self.path)
+
+    @classmethod
+    def normalized_extension(cls, extension):
+        """Returns extension in normalized form, i.e. without leading dot and all lower capitals."""
+        if not extension:
+            return None
+        if extension.startswith('.'):
+            return extension[1:].lower()
+        else:
+            return extension.lower()
 
     @property
     def definition(self):
@@ -53,12 +63,12 @@ class SyntaxFileSet(collections.MutableSet):
             for extension in value.extensions:
                 self.extension_map.pop(extension)
 
+    def filtered(self, fileformat, extensions):
+        """Returns a filtered (Python) set for the given extensions and in the specified file file format."""
+        if extensions:
+            syntax_files = {self.extension_map[ext] for ext in extensions if ext in self.extension_map}
+        else:
+            # return all known syntax definitions:
+            syntax_files = self.data
 
-def normalized_extension(extension):
-    """Returns extension in normalized form, i.e. without leading dot and all lower capitals."""
-    if not extension:
-        return None
-    if extension.startswith('.'):
-        return extension[1:].lower()
-    else:
-        return extension.lower()
+        return filter(lambda s: s.fileformat is fileformat, syntax_files)

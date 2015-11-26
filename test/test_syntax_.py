@@ -1,8 +1,7 @@
 import os
 from unittest import mock
-
 from jep.schema import SyntaxFormatType
-from jep.syntax import SyntaxFileSet, SyntaxFile, normalized_extension
+from jep.syntax import SyntaxFileSet, SyntaxFile
 
 
 def setup_function(function):
@@ -11,12 +10,12 @@ def setup_function(function):
 
 
 def test_syntax_file():
-    s = SyntaxFile(mock.sentinel.PATH, mock.sentinel.FORMAT, (mock.sentinel.EXT1, mock.sentinel.EXT2))
+    s = SyntaxFile(mock.sentinel.PATH, mock.sentinel.FORMAT, ('ext1', 'ext2'))
     assert s.path == mock.sentinel.PATH
-    assert s.format_ == mock.sentinel.FORMAT
+    assert s.fileformat == mock.sentinel.FORMAT
     assert len(s.extensions) == 2
-    assert mock.sentinel.EXT1 in s.extensions
-    assert mock.sentinel.EXT2 in s.extensions
+    assert 'ext1' in s.extensions
+    assert 'ext2' in s.extensions
 
 
 def test_syntax_file_definition():
@@ -26,14 +25,14 @@ def test_syntax_file_definition():
     assert len(d) == 2837
 
 
-def test_normalized_extension():
-    assert normalized_extension(None) is None
-    assert normalized_extension('.ext') == 'ext'
-    assert normalized_extension('.Ext') == 'ext'
-    assert normalized_extension('.EXT') == 'ext'
-    assert normalized_extension('ext') == 'ext'
-    assert normalized_extension('Ext') == 'ext'
-    assert normalized_extension('EXT') == 'ext'
+def test_syntax_file_normalized_extension():
+    assert SyntaxFile.normalized_extension(None) is None
+    assert SyntaxFile.normalized_extension('.ext') == 'ext'
+    assert SyntaxFile.normalized_extension('.Ext') == 'ext'
+    assert SyntaxFile.normalized_extension('.EXT') == 'ext'
+    assert SyntaxFile.normalized_extension('ext') == 'ext'
+    assert SyntaxFile.normalized_extension('Ext') == 'ext'
+    assert SyntaxFile.normalized_extension('EXT') == 'ext'
 
 
 def test_syntax_file_set_empty():
@@ -45,28 +44,47 @@ def test_syntax_file_set_empty():
 
 def test_syntax_file_set_add():
     sfiles = SyntaxFileSet()
-    sfiles.add(SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, (mock.sentinel.EXTA1, mock.sentinel.EXTA2)))
-    sfiles.add(SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, (mock.sentinel.EXTB1, mock.sentinel.EXTB2)))
+    sfiles.add(SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2')))
+    sfiles.add(SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2')))
 
     assert len(sfiles) == 2
-    s = SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, (mock.sentinel.EXTB1, mock.sentinel.EXTB2))
+    s = SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2'))
     assert s in sfiles
 
-    assert sfiles.extension_map[mock.sentinel.EXTA1].path == mock.sentinel.PATHA
-    assert sfiles.extension_map[mock.sentinel.EXTA2].path == mock.sentinel.PATHA
-    assert sfiles.extension_map[mock.sentinel.EXTB1].path == mock.sentinel.PATHB
-    assert sfiles.extension_map[mock.sentinel.EXTB2].path == mock.sentinel.PATHB
+    assert sfiles.extension_map['exta1'].path == mock.sentinel.PATHA
+    assert sfiles.extension_map['exta2'].path == mock.sentinel.PATHA
+    assert sfiles.extension_map['extb1'].path == mock.sentinel.PATHB
+    assert sfiles.extension_map['extb2'].path == mock.sentinel.PATHB
 
 
 def test_syntax_file_set_remove():
     sfiles = SyntaxFileSet()
-    sfiles.add(SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, (mock.sentinel.EXTA1, mock.sentinel.EXTA2)))
-    sfiles.add(SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, (mock.sentinel.EXTB1, mock.sentinel.EXTB2)))
-    sfiles.remove(SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, (mock.sentinel.EXTB1, mock.sentinel.EXTB2)))
+    sfiles.add(SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2')))
+    sfiles.add(SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2')))
+    sfiles.remove(SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2')))
 
     assert len(sfiles) == 1
-    assert SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, (mock.sentinel.EXTA1, mock.sentinel.EXTA2)) in sfiles
+    assert SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2')) in sfiles
 
     assert len(sfiles.extension_map) == 2
-    assert sfiles.extension_map[mock.sentinel.EXTA1].path == mock.sentinel.PATHA
-    assert sfiles.extension_map[mock.sentinel.EXTA2].path == mock.sentinel.PATHA
+    assert sfiles.extension_map['exta1'].path == mock.sentinel.PATHA
+    assert sfiles.extension_map['exta2'].path == mock.sentinel.PATHA
+
+
+def test_syntax_file_set_filtered():
+    s = SyntaxFileSet()
+
+    s1 = SyntaxFile(mock.sentinel.PATH1, mock.sentinel.FORMATA, ['ext1a', 'ext1b'])
+    s2 = SyntaxFile(mock.sentinel.PATH2, mock.sentinel.FORMATA, ['ext2a', 'ext2b'])
+
+    s.add(s1)
+    s.add(s2)
+    s.add(SyntaxFile(mock.sentinel.PATH3, mock.sentinel.FORMATB, ['ext3a', 'ext3b']))
+
+    assert not list(s.filtered(mock.sentinel.FORMATC, ['ext1a', 'ext2a', 'ext3a']))
+    assert not list(s.filtered(mock.sentinel.FORMATA, ['ext4', 'ext3a', 'ext3b']))
+
+    f = list(s.filtered(mock.sentinel.FORMATA, ['ext4', 'ext1a', 'ext2b']))
+    assert len(f) == 2
+    assert s1 in f
+    assert s2 in f
