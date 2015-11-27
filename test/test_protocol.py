@@ -1,12 +1,10 @@
 from unittest import mock
-
 import umsgpack
 import pytest
-
 from test.logconfig import configure_test_logger
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
-    Severity, FileProblems, CompletionInvocation, StaticSyntaxRequest
+    Severity, FileProblems, CompletionInvocation, StaticSyntaxRequest, SyntaxFormatType, StaticSyntaxList, StaticSyntax
 
 
 def setup_function(function):
@@ -63,6 +61,18 @@ def test_message_serializer_serialize_content_sync(observable_serializer):
 def test_message_serializer_serialize_out_of_sync(observable_serializer):
     packed = observable_serializer.serialize(OutOfSync('thefile'))
     observable_serializer.packer.dumps.assert_called_once_with(dict(_message='OutOfSync', file='thefile'))
+    # TODO assert packed==...
+
+
+def test_message_serializer_serialize_static_syntax_request(observable_serializer):
+    packed = observable_serializer.serialize(StaticSyntaxRequest(SyntaxFormatType.textmate, ['c', 'h', 'cpp']))
+    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='StaticSyntaxRequest', format='textmate', fileExtensions=['c', 'h', 'cpp']))
+    # TODO assert packed==...
+
+
+def test_message_serializer_serialize_static_syntax_list(observable_serializer):
+    packed = observable_serializer.serialize(StaticSyntaxList(SyntaxFormatType.textmate, [StaticSyntax(['c', 'h', 'cpp'], 'DEFINITION')]))
+    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='StaticSyntaxList', format='textmate', syntaxes=[{'fileExtensions': ['c', 'h', 'cpp'], 'definition': 'DEFINITION'}]))
     # TODO assert packed==...
 
 
