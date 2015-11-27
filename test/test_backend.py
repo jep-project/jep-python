@@ -5,7 +5,7 @@ import pytest
 from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendConnection, TIMEOUT_BACKEND_ALIVE, TIMEOUT_LAST_MESSAGE
 from jep.content import SynchronizationResult
 from jep.protocol import MessageSerializer
-from jep.schema import Shutdown, BackendAlive, CompletionRequest, ContentSync
+from jep.schema import Shutdown, BackendAlive, CompletionRequest, ContentSync, StaticSyntaxList, StaticSyntax
 from jep.syntax import SyntaxFile
 from test.logconfig import configure_test_logger
 
@@ -245,5 +245,38 @@ def test_static_syntax_registration():
     mock_syntax_fileset.add_syntax_file.assert_called_once_with(mock.sentinel.PATH1, mock.sentinel.FORMAT1, (mock.sentinel.extensions,))
 
 
-def test_on_static_syntax_request():
-    assert False
+def test_on_static_syntax_request_none():
+    mock_syntax_fileset = mock.MagicMock()
+    mock_context = mock.MagicMock()
+    backend = Backend(syntax_fileset=mock_syntax_fileset)
+
+    mock_syntax_fileset.filtered = mock.MagicMock(return_value=None)
+    backend.on_static_syntax_request(mock.sentinel.FORMAT, ['ext1', 'ext2'], mock_context)
+    mock_syntax_fileset.filtered.assert_called_once_with(mock.sentinel.FORMAT, ['ext1', 'ext2'])
+    assert not mock_context.send_message.called
+
+
+def test_on_static_syntax_request_found():
+    mock_syntax_fileset = mock.MagicMock()
+    mock_context = mock.MagicMock()
+    mock_context.send_message = mock.MagicMock()
+
+    backend = Backend(syntax_fileset=mock_syntax_fileset)
+
+    mock_syntax_file = mock.MagicMock()
+    mock_syntax_file.extensions = mock.sentinel.EXTENSIONS
+    mock_syntax_file.definition = mock.sentinel.DEFINITION
+    mock_syntax_fileset.filtered = mock.MagicMock(return_value=(mock_syntax_file,))
+    mock_syntax_fileset.format = mock.sentinel.FORMAT
+
+    backend.on_static_syntax_request(mock.sentinel.FORMAT, ['ext1', 'ext2'], mock_context)
+    assert mock_context.send_message.call_count == 1
+    arg = mock_context.send_message.call_args[0][0]
+    assert isinstance(arg, StaticSyntaxList)
+    assert arg.format is mock.sentinel.FORMAT
+    assert len(arg.syntaxes) == 1
+
+    syntax = arg.syntaxes[0]
+    assert isinstance(syntax, StaticSyntax)
+    assert syntax.fileExtensions is mock.sentinel.EXTENSIONS
+    assert syntax.definition is mock.sentinel.DEFINITION

@@ -236,7 +236,7 @@ class Backend(FrontendListener):
         filtered = self.syntax_fileset.filtered(format, fileExtensions)
         if filtered:
             _logger.debug('Returning {} matching syntax definitions.'.format(len(filtered)))
-            msg = StaticSyntaxList(format, [StaticSyntax(sf.extentions, sf.definition) for sf in filtered])
+            msg = StaticSyntaxList(format, [StaticSyntax(sf.extensions, sf.definition) for sf in filtered])
             context.send_message(msg)
         else:
             _logger.debug('Did not find any matching syntax definition.')
