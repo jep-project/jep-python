@@ -232,11 +232,15 @@ class Backend(FrontendListener):
 
     def on_static_syntax_request(self, format, fileExtensions, context):
         """Handle requests for static syntax definitions, expected to be in normalized form."""
-        _logger.debug('Received syntax request in format {} for extensions {}.'.format(format, ', '.join(fileExtensions)))
+        if fileExtensions:
+            _logger.debug('Received syntax request in format {} for extensions {}.'.format(format, ', '.join(fileExtensions)))
+        else:
+            _logger.debug('Received syntax request in format {} for all available extensions.'.format(format))
+
         filtered = self.syntax_fileset.filtered(format, fileExtensions)
         if filtered:
-            _logger.debug('Returning {} matching syntax definitions.'.format(len(filtered)))
             msg = StaticSyntaxList(format, [StaticSyntax(sf.extensions, sf.definition) for sf in filtered])
+            _logger.debug('Returning {} matching syntax definitions.'.format(len(msg.syntaxes)))
             context.send_message(msg)
         else:
             _logger.debug('Did not find any matching syntax definition.')

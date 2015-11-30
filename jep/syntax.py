@@ -74,4 +74,4 @@ class SyntaxFileSet(collections.MutableSet):
             # return all known syntax definitions:
             syntax_files = self.data
 
-        return filter(lambda s: s.fileformat is fileformat, syntax_files)
+        return set(filter(lambda s: s.fileformat is fileformat, syntax_files))
