@@ -8,7 +8,7 @@ class SyntaxFile:
     def __init__(self, path, fileformat, extensions):
         self.path = path
         self.fileformat = fileformat
-        self.extensions = {self.normalized_extension(e) for e in extensions}
+        self.extensions = [self.normalized_extension(e) for e in extensions]
         self._definition = None
 
     def __eq__(self, other):

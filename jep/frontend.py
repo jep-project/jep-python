@@ -12,11 +12,11 @@ import datetime
 import os
 from os import path
 import uuid
-
 from jep.async import AsynchronousFileReader
 from jep.config import ServiceConfigProvider, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
 from jep.protocol import MessageSerializer
 from jep.schema import Shutdown, TOKEN_ATTR_NAME
+from jep.syntax import SyntaxFileSet
 
 _logger = logging.getLogger(__name__)
 
@@ -30,13 +30,39 @@ TIMEOUT_BACKEND_STARTUP = datetime.timedelta(seconds=5)
 TIMEOUT_BACKEND_SHUTDOWN = datetime.timedelta(seconds=5)
 
 
-class Frontend:
+class BackendListener:
+    """API to listen to messages from backend, communicated by frontend."""
+
+    def on_connection_state_changed(self, old_state, new_state, context):
+        return NotImplemented
+
+    def on_backend_alive(self, context):
+        return NotImplemented
+
+    def on_out_of_sync(self, out_of_sync, context):
+        return NotImplemented
+
+    def on_content_sync(self, content_sync, context):
+        return NotImplemented
+
+    def on_problem_update(self, problem_update, context):
+        return NotImplemented
+
+    def on_completion_response(self, completion_response, context):
+        return NotImplemented
+
+    def on_static_syntax_list(self, format_, syntaxes, context):
+        return NotImplemented
+
+
+class Frontend(BackendListener):
     """Top level frontend class, once to be instantiated per editor plugin."""
 
-    def __init__(self, listeners=None, *, service_config_provider=None, provide_backend_connection=None):
+    def __init__(self, listeners=None, *, service_config_provider=None, provide_backend_connection=None, syntax_fileset=None):
         self.listeners = listeners or []
         self.service_config_provider = service_config_provider or ServiceConfigProvider()
         self.provide_backend_connection = provide_backend_connection or BackendConnection
+        self.syntax_fileset = syntax_fileset or SyntaxFileSet()
         self.connection_by_service_selector = collections.defaultdict(lambda: None)
 
     def get_connection(self, filename):
@@ -71,10 +97,14 @@ class Frontend:
 
     def _connect(self, service_config):
         """Connect to service described in configuration."""
-        connection = self.provide_backend_connection(service_config, self.listeners)
+        connection = self.provide_backend_connection(self, service_config, self.listeners)
         self.connection_by_service_selector[service_config.selector] = connection
         connection.connect()
         return connection
+
+    def on_static_syntax_list(self, format_, syntaxes, context):
+        for syntax in syntaxes:
+            _logger.debug("Received static syntax definition for file extensions: {}.".format(', '.join(syntax.fileExtensions)))
 
 
 @enum.unique
@@ -86,10 +116,11 @@ class State(enum.Enum):
     Disconnecting = 4
 
 
-class BackendConnection:
+class BackendConnection():
     """Connection to a single backend service."""
 
-    def __init__(self, service_config, listeners, *, serializer=None, provide_async_reader=None):
+    def __init__(self, frontend, service_config, listeners, *, serializer=None, provide_async_reader=None):
+        self.frontend = frontend
         self.service_config = service_config
         self.listeners = listeners
         self._state = State.Disconnected
@@ -340,6 +371,9 @@ class BackendConnection:
         for msg in self._serializer:
             _logger.debug('Received message: %s' % msg)
 
+            # first allow processing of global messages by frontend:
+            msg.invoke(self.frontend, self)
+
             # call listeners' message specific handler methods (visitor pattern's accept() call):
             for listener in self.listeners:
                 msg.invoke(listener, self)
@@ -404,28 +438,3 @@ class BackendConnection:
                 _logger.debug('[backend] %s' % line)
                 if result_lines is not None:
                     result_lines.append(line)
-
-
-class BackendListener:
-    """API to listen to messages from backend, communicated by frontend."""
-
-    def on_connection_state_changed(self, old_state, new_state, context):
-        return NotImplemented
-
-    def on_backend_alive(self, context):
-        return NotImplemented
-
-    def on_out_of_sync(self, out_of_sync, context):
-        return NotImplemented
-
-    def on_content_sync(self, content_sync, context):
-        return NotImplemented
-
-    def on_problem_update(self, problem_update, context):
-        return NotImplemented
-
-    def on_completion_response(self, completion_response, context):
-        return NotImplemented
-
-    def on_static_syntax_list(self, format_, syntaxes, context):
-        return NotImplemented

@@ -1,13 +1,15 @@
 """Start script for JEP backend service."""
+import os
 import sys
-from jep.schema import CompletionResponse, CompletionRequest, CompletionOption
+from jep.schema import CompletionResponse, CompletionRequest, CompletionOption, SyntaxFormatType
+
+moduledir = os.path.dirname(__file__)
 
 try:
     import jep as jeptestimport
 except ImportError:
     # not in path, do it now:
-    import os.path
-    sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+    sys.path.append(os.path.join(moduledir, "..", ".."))
 
 import logging
 import logging.config
@@ -56,4 +58,6 @@ class Listener(FrontendListener):
                                                 completion_request.token))
 
 
-Backend([Listener()]).start()
+b = Backend([Listener()])
+b.register_static_syntax(os.path.join(moduledir, '../input/syntax/mcmake.tmLanguage'), SyntaxFormatType.textmate, '.mcmake')
+b.start()
