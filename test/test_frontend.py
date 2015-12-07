@@ -36,7 +36,7 @@ def test_provide_connection_first_time():
 
     mock_service_config_provider.provide_for.assert_called_once_with(mock.sentinel.FILE_NAME)
     mock_provide_backend_connection.assert_called_once_with(frontend, mock_service_config, mock.sentinel.LISTENERS)
-    mock_connection.connect.assert_called_once()
+    assert mock_connection.connect.call_count == 1
     assert not mock_connection.disconnect.called
     assert connection is mock_connection
 
@@ -255,7 +255,7 @@ def test_backend_connection_connect(mock_os_module, mock_datetime_module, mock_s
     # process and reader thread were started and state is adapted:
     assert mock_subprocess_module.Popen.call_args[0][0][0] == 'folder/somecommand.ext'
     assert mock_subprocess_module.Popen.call_args[1]['cwd'] == path.abspath('somedir')
-    mock_async_reader.start.assert_called_once()
+    assert mock_async_reader.start.call_count == 1
     assert connection.state is State.Connecting
     assert connection._process is mock_process
 
@@ -311,8 +311,8 @@ def test_backend_connection_connect_no_port_announcement(mock_os_module, mock_da
     connection.run(datetime.timedelta(seconds=2))
     assert connection.state is State.Disconnected
 
-    mock_process.kill.assert_called_once()
-    mock_async_reader.join.assert_called_once()
+    assert mock_process.kill.call_count == 1
+    assert mock_async_reader.join.call_count == 1
     assert not connection._process
     assert not connection._process_output_reader
 
@@ -342,8 +342,8 @@ def test_backend_connection_connect_connection_none(mock_os_module, mock_datetim
     connection.run(datetime.timedelta(seconds=2))
     assert connection.state is State.Disconnected
 
-    mock_process.kill.assert_called_once()
-    mock_async_reader.join.assert_called_once()
+    assert mock_process.kill.call_count == 1
+    assert mock_async_reader.join.call_count == 1
     assert not connection._process
     assert not connection._process_output_reader
 
@@ -373,8 +373,8 @@ def test_backend_connection_connect_connection_exception(mock_os_module, mock_da
     connection.run(datetime.timedelta(seconds=2))
     assert connection.state is State.Disconnected
 
-    mock_process.kill.assert_called_once()
-    mock_async_reader.join.assert_called_once()
+    assert mock_process.kill.call_count == 1
+    assert mock_async_reader.join.call_count == 1
     assert not connection._process
     assert not connection._process_output_reader
 
@@ -464,7 +464,7 @@ def test_backend_connected_disconnect_backend_shutdown_timeout(mock_os_module, m
     # run a bit longer and get timeout reaction:
     connection.run(datetime.timedelta(seconds=1))
 
-    mock_socket.close.assert_called_once()
+    assert mock_socket.close.call_count == 1
     assert connection.state is State.Disconnected
     assert not connection._socket
     assert not connection._process
@@ -488,7 +488,7 @@ def test_backend_connected_receive_no_data_until_alive_timeout(mock_os_module, m
     mock_process.poll = mock.MagicMock(return_value=0)
     connection.run(datetime.timedelta(seconds=1))
 
-    mock_socket.close.assert_called_once()
+    assert mock_socket.close.call_count == 1
     assert connection.state is State.Disconnected
     assert not connection._socket
     assert not connection._process

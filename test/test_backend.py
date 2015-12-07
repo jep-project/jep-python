@@ -60,8 +60,8 @@ def test_bind_and_listen_and_accept_and_disconnect(mock_select_mod, mock_socket_
     server_socket.accept = mock.MagicMock(side_effect=set_backend_state(backend, State.ShutdownPending, [client_socket]))
     backend.start()
     assert backend.state is State.Stopped
-    server_socket.close.assert_called_once()
-    client_socket.close.assert_called_once()
+    assert server_socket.close.call_count == 1
+    assert client_socket.close.call_count == 1
 
     out, *_ = capsys.readouterr()
     assert 'JEP service, listening on port 9001' in out
@@ -79,8 +79,8 @@ def test_receive_shutdown():
     backend._receive(mock_clientsocket)
 
     # listeners are called:
-    mock_listener1.on_shutdown.assert_called_once()
-    mock_listener2.on_shutdown.assert_called_once()
+    assert mock_listener1.on_shutdown.call_count == 1
+    assert mock_listener2.on_shutdown.call_count == 1
 
     # backend reacted to shutdown:
     assert backend.state is State.ShutdownPending
@@ -94,7 +94,7 @@ def test_receive_empty():
     backend.sockets.append(mock_clientsocket)
 
     backend._receive(mock_clientsocket)
-    mock_clientsocket.close.assert_called_once()
+    assert mock_clientsocket.close.call_count == 1
 
 
 def test_message_context():
@@ -204,7 +204,7 @@ def test_propagate_content_sync():
     backend._receive(mock_clientsocket)
 
     # listeners are called:
-    mock_listener.on_content_sync.assert_called_once()
+    assert mock_listener.on_content_sync.call_count == 1
     mock_content_monitor.synchronize.assert_called_once_with('/path/to/file', 'new content', 17, 21)
     assert not mock_clientsocket.send.called
 
@@ -229,9 +229,9 @@ def test_propagate_content_sync_out_of_sync():
     backend._receive(mock_clientsocket)
 
     # listeners are called:
-    mock_listener.on_content_sync.assert_called_once()
+    assert mock_listener.on_content_sync.call_count == 1
     mock_content_monitor.synchronize.assert_called_once_with('/path/to/file', 'new content', 17, 21)
-    mock_clientsocket.send.assert_called_once()
+    assert mock_clientsocket.send.call_count == 1
 
     arg = mock_clientsocket.send.call_args[0][0]
     assert b'OutOfSync' in arg
