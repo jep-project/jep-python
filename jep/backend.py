@@ -93,12 +93,12 @@ class Backend(FrontendListener):
         _logger.debug('Received request to shut down.')
         self.state = State.ShutdownPending
 
-    def register_static_syntax(self, path, fileformat, *extensions):
+    def register_static_syntax(self, name, path, fileformat, *extensions):
         """Adds a new static syntax file to the backend's registry for pickup by the frontend.
 
         Should usually be called before the backend is started and connections are made.
         """
-        self.syntax_fileset.add_syntax_file(path, fileformat, extensions)
+        self.syntax_fileset.add_syntax_file(name, path, fileformat, extensions)
 
     def _listen(self):
         """Set up server socket to listen for incoming connections."""
@@ -239,7 +239,7 @@ class Backend(FrontendListener):
 
         filtered = self.syntax_fileset.filtered(format, fileExtensions)
         if filtered:
-            msg = StaticSyntaxList(format, [StaticSyntax(sf.extensions, sf.definition) for sf in filtered])
+            msg = StaticSyntaxList(format, [StaticSyntax(sf.name, sf.extensions, sf.definition) for sf in filtered])
             _logger.debug('Returning {} matching syntax definitions.'.format(len(msg.syntaxes)))
             context.send_message(msg)
         else:

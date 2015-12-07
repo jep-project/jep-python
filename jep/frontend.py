@@ -10,7 +10,6 @@ import select
 import shlex
 import datetime
 import os
-from os import path
 import uuid
 from jep.async import AsynchronousFileReader
 from jep.config import ServiceConfigProvider, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
@@ -105,6 +104,7 @@ class Frontend(BackendListener):
     def on_static_syntax_list(self, format_, syntaxes, context):
         for syntax in syntaxes:
             _logger.debug("Received static syntax definition for file extensions: {}.".format(', '.join(syntax.fileExtensions)))
+            self.syntax_fileset.add_syntax_file(path, format_, syntax.fileExtensions)
 
 
 @enum.unique
@@ -162,7 +162,7 @@ class BackendConnection():
             return
 
         # launch backend process and capture its output:
-        cwd = path.dirname(self.service_config.config_file_path)
+        cwd = os.path.dirname(self.service_config.config_file_path)
         _logger.debug('Starting backend service with command "%s" in directory %s.' % (self.service_config.command, cwd))
         try:
             # on Windows prevent console window when being called from GUI process:

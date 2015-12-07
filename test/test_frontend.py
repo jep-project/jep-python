@@ -245,6 +245,9 @@ def test_backend_connection_connect(mock_os_module, mock_datetime_module, mock_s
 
     mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
                                                                                                                mock_subprocess_module, now)
+    # reset to unpatched module:
+    mock_os_module.path = path
+
     mock_listener = mock.MagicMock()
     connection = BackendConnection(mock.sentinel.FRONTEND, mock_service_config, [mock_listener], serializer=mock.sentinel.SERIALIZER, provide_async_reader=mock_provide_async_reader)
     connection.connect()
@@ -421,6 +424,9 @@ def test_backend_connected_disconnect_backend_shutdown_ok(mock_os_module, mock_d
 @mock.patch('jep.frontend.os')
 def test_backend_connected_reconnect(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
+
+    # reset to unpatched module:
+    mock_os_module.path = path
 
     mock_service_config2 = mock.MagicMock()
     mock_service_config2.command = 'folder/somenewcommand.ext someparameter somethingelse'

@@ -33,7 +33,7 @@ class BackendAlive(Message):
 
 
 class ContentSync(Message):
-    def __init__(self, file: str, data: str, start: int=0, end: int=None):
+    def __init__(self, file: str, data: str, start: int = 0, end: int = None):
         super().__init__()
         self.file = file
         self.start = start
@@ -71,7 +71,7 @@ class Problem(Serializable):
 
 
 class FileProblems(Serializable):
-    def __init__(self, file: str, problems: [Problem], total: int=None, start: int=0, end: int=None):
+    def __init__(self, file: str, problems: [Problem], total: int = None, start: int = 0, end: int = None):
         super().__init__()
         self.file = file
         self.problems = problems
@@ -81,7 +81,7 @@ class FileProblems(Serializable):
 
 
 class ProblemUpdate(Message):
-    def __init__(self, fileProblems: [FileProblems], partial: bool=False):
+    def __init__(self, fileProblems: [FileProblems], partial: bool = False):
         super().__init__()
         self.fileProblems = fileProblems
         self.partial = partial
@@ -91,7 +91,7 @@ class ProblemUpdate(Message):
 
 
 class CompletionRequest(Message):
-    def __init__(self, file: str, pos: int, limit: int=None, token: str=None):
+    def __init__(self, file: str, pos: int, limit: int = None, token: str = None):
         super().__init__()
         self.token = token
         self.file = file
@@ -120,7 +120,7 @@ class SemanticType(enum.Enum):
 
 
 class CompletionOption(Serializable):
-    def __init__(self, insert: str, desc: str=None, longDesc: str=None, semantics: SemanticType=None, extensionId: str=None):
+    def __init__(self, insert: str, desc: str = None, longDesc: str = None, semantics: SemanticType = None, extensionId: str = None):
         super().__init__()
         self.insert = insert
         self.desc = desc
@@ -130,7 +130,7 @@ class CompletionOption(Serializable):
 
 
 class CompletionResponse(Message):
-    def __init__(self, start: int, end: int, limitExceeded: bool=False, options: [CompletionOption]=(), token: str=None):
+    def __init__(self, start: int, end: int, limitExceeded: bool = False, options: [CompletionOption] = (), token: str = None):
         super().__init__()
         self.token = token
         self.start = start
@@ -143,7 +143,7 @@ class CompletionResponse(Message):
 
 
 class CompletionInvocation(Message):
-    def __init__(self, extensionId: str=None):
+    def __init__(self, extensionId: str = None):
         super().__init__()
         self.extensionId = extensionId
 
@@ -158,7 +158,7 @@ class SyntaxFormatType(enum.Enum):
 
 
 class StaticSyntaxRequest(Message):
-    def __init__(self, format: SyntaxFormatType, fileExtensions: [str]=()):
+    def __init__(self, format: SyntaxFormatType, fileExtensions: [str] = ()):
         super().__init__()
         self.format = format
         self.fileExtensions = fileExtensions
@@ -168,14 +168,15 @@ class StaticSyntaxRequest(Message):
 
 
 class StaticSyntax(Serializable):
-    def __init__(self, fileExtensions: [str], definition: str):
+    def __init__(self, name: str, fileExtensions: [str], definition: str):
         super().__init__()
+        self.name = name
         self.fileExtensions = fileExtensions
         self.definition = definition
 
 
 class StaticSyntaxList(Message):
-    def __init__(self, format: SyntaxFormatType, syntaxes: [StaticSyntax]=()):
+    def __init__(self, format: SyntaxFormatType, syntaxes: [StaticSyntax] = ()):
         super().__init__()
         self.format = format
         self.syntaxes = syntaxes

@@ -5,14 +5,15 @@ import collections
 class SyntaxFile:
     """Container for reference to syntax file and the extensions it supports."""
 
-    def __init__(self, path, fileformat, extensions):
+    def __init__(self, name, path, fileformat, extensions):
+        self.name = name
         self.path = path
         self.fileformat = fileformat
         self.extensions = [self.normalized_extension(e) for e in extensions]
         self._definition = None
 
     def __eq__(self, other):
-        return self.path == other.path and self.fileformat == other.fileformat and self.extensions == other.extensions
+        return self.name == other.name and self.path == other.path and self.fileformat == other.fileformat and self.extensions == other.extensions
 
     def __hash__(self):
         return hash(self.path)
@@ -57,8 +58,8 @@ class SyntaxFileSet(collections.MutableSet):
         for extension in value.extensions:
             self.extension_map[extension] = value
 
-    def add_syntax_file(self, path, fileformat, extensions):
-        self.add(SyntaxFile(path, fileformat, extensions))
+    def add_syntax_file(self, name, path, fileformat, extensions):
+        self.add(SyntaxFile(name, path, fileformat, extensions))
 
     def discard(self, value):
         if value in self.data:

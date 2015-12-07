@@ -71,8 +71,12 @@ def test_message_serializer_serialize_static_syntax_request(observable_serialize
 
 
 def test_message_serializer_serialize_static_syntax_list(observable_serializer):
-    packed = observable_serializer.serialize(StaticSyntaxList(SyntaxFormatType.textmate, [StaticSyntax(['c', 'h', 'cpp'], 'DEFINITION')]))
-    observable_serializer.packer.dumps.assert_called_once_with(dict(_message='StaticSyntaxList', format='textmate', syntaxes=[{'fileExtensions': ['c', 'h', 'cpp'], 'definition': 'DEFINITION'}]))
+    packed = observable_serializer.serialize(StaticSyntaxList(SyntaxFormatType.textmate, [StaticSyntax('some.syntax', ['c', 'h', 'cpp'], 'DEFINITION')]))
+    observable_serializer.packer.dumps.assert_called_once_with(
+        dict(_message='StaticSyntaxList',
+             format='textmate',
+             syntaxes=[{'name': 'some.syntax', 'fileExtensions': ['c', 'h', 'cpp'], 'definition': 'DEFINITION'}])
+    )
     # TODO assert packed==...
 
 

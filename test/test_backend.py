@@ -241,8 +241,8 @@ def test_static_syntax_registration():
     mock_syntax_fileset = mock.MagicMock()
     backend = Backend(syntax_fileset=mock_syntax_fileset)
 
-    backend.register_static_syntax(mock.sentinel.PATH1, mock.sentinel.FORMAT1, mock.sentinel.extensions)
-    mock_syntax_fileset.add_syntax_file.assert_called_once_with(mock.sentinel.PATH1, mock.sentinel.FORMAT1, (mock.sentinel.extensions,))
+    backend.register_static_syntax(mock.sentinel.NAME1, mock.sentinel.PATH1, mock.sentinel.FORMAT1, mock.sentinel.extensions)
+    mock_syntax_fileset.add_syntax_file.assert_called_once_with(mock.sentinel.NAME1, mock.sentinel.PATH1, mock.sentinel.FORMAT1, (mock.sentinel.extensions,))
 
 
 def test_on_static_syntax_request_none():
@@ -264,6 +264,7 @@ def test_on_static_syntax_request_found():
     backend = Backend(syntax_fileset=mock_syntax_fileset)
 
     mock_syntax_file = mock.MagicMock()
+    mock_syntax_file.name = mock.sentinel.NAME1
     mock_syntax_file.extensions = mock.sentinel.EXTENSIONS
     mock_syntax_file.definition = mock.sentinel.DEFINITION
     mock_syntax_fileset.filtered = mock.MagicMock(return_value=(mock_syntax_file,))
@@ -278,5 +279,6 @@ def test_on_static_syntax_request_found():
 
     syntax = arg.syntaxes[0]
     assert isinstance(syntax, StaticSyntax)
+    assert syntax.name == mock.sentinel.NAME1
     assert syntax.fileExtensions is mock.sentinel.EXTENSIONS
     assert syntax.definition is mock.sentinel.DEFINITION

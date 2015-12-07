@@ -10,7 +10,8 @@ def setup_function(function):
 
 
 def test_syntax_file():
-    s = SyntaxFile(mock.sentinel.PATH, mock.sentinel.FORMAT, ('ext1', 'ext2'))
+    s = SyntaxFile(mock.sentinel.NAME, mock.sentinel.PATH, mock.sentinel.FORMAT, ('ext1', 'ext2'))
+    assert s.name == mock.sentinel.NAME
     assert s.path == mock.sentinel.PATH
     assert s.fileformat == mock.sentinel.FORMAT
     assert len(s.extensions) == 2
@@ -19,7 +20,7 @@ def test_syntax_file():
 
 
 def test_syntax_file_definition():
-    s = SyntaxFile('syntax/mcmake.tmLanguage', SyntaxFormatType.textmate, ('cmake',))
+    s = SyntaxFile('mcmake.tmLanguage', 'syntax/mcmake.tmLanguage', SyntaxFormatType.textmate, ('cmake',))
     d = s.definition
     assert 'string.quoted.double.mcmake' in d
     assert len(d) == 2837
@@ -44,11 +45,11 @@ def test_syntax_file_set_empty():
 
 def test_syntax_file_set_add():
     sfiles = SyntaxFileSet()
-    sfiles.add(SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2')))
-    sfiles.add(SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2')))
+    sfiles.add(SyntaxFile(mock.sentinel.NAMEA, mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2')))
+    sfiles.add(SyntaxFile(mock.sentinel.NAMEB, mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2')))
 
     assert len(sfiles) == 2
-    s = SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2'))
+    s = SyntaxFile(mock.sentinel.NAMEB, mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2'))
     assert s in sfiles
 
     assert sfiles.extension_map['exta1'].path == mock.sentinel.PATHA
@@ -59,20 +60,20 @@ def test_syntax_file_set_add():
 
 def test_syntax_file_set_add_syntax_file():
     sfiles = SyntaxFileSet()
-    sfiles.add_syntax_file(mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2'))
+    sfiles.add_syntax_file(mock.sentinel.NAME1, mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2'))
     assert len(sfiles) == 1
-    s = SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2'))
+    s = SyntaxFile(mock.sentinel.NAME1, mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2'))
     assert s in sfiles
 
 
 def test_syntax_file_set_remove():
     sfiles = SyntaxFileSet()
-    sfiles.add(SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2')))
-    sfiles.add(SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2')))
-    sfiles.remove(SyntaxFile(mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2')))
+    sfiles.add(SyntaxFile(mock.sentinel.NAMEA, mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2')))
+    sfiles.add(SyntaxFile(mock.sentinel.NAMEB, mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2')))
+    sfiles.remove(SyntaxFile(mock.sentinel.NAMEB, mock.sentinel.PATHB, mock.sentinel.FORMATB, ('extB1', 'extB2')))
 
     assert len(sfiles) == 1
-    assert SyntaxFile(mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2')) in sfiles
+    assert SyntaxFile(mock.sentinel.NAMEA, mock.sentinel.PATHA, mock.sentinel.FORMATA, ('extA1', 'extA2')) in sfiles
 
     assert len(sfiles.extension_map) == 2
     assert sfiles.extension_map['exta1'].path == mock.sentinel.PATHA
@@ -82,12 +83,12 @@ def test_syntax_file_set_remove():
 def test_syntax_file_set_filtered():
     s = SyntaxFileSet()
 
-    s1 = SyntaxFile(mock.sentinel.PATH1, mock.sentinel.FORMATA, ['ext1a', 'ext1b'])
-    s2 = SyntaxFile(mock.sentinel.PATH2, mock.sentinel.FORMATA, ['ext2a', 'ext2b'])
+    s1 = SyntaxFile(mock.sentinel.NAME1, mock.sentinel.PATH1, mock.sentinel.FORMATA, ['ext1a', 'ext1b'])
+    s2 = SyntaxFile(mock.sentinel.NAME2, mock.sentinel.PATH2, mock.sentinel.FORMATA, ['ext2a', 'ext2b'])
 
     s.add(s1)
     s.add(s2)
-    s.add(SyntaxFile(mock.sentinel.PATH3, mock.sentinel.FORMATB, ['ext3a', 'ext3b']))
+    s.add(SyntaxFile(mock.sentinel.NAME3, mock.sentinel.PATH3, mock.sentinel.FORMATB, ['ext3a', 'ext3b']))
 
     assert not list(s.filtered(mock.sentinel.FORMATC, ['ext1a', 'ext2a', 'ext3a']))
     assert not list(s.filtered(mock.sentinel.FORMATA, ['ext4', 'ext3a', 'ext3b']))
