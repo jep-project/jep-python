@@ -1,7 +1,6 @@
 """Start script for JEP backend service."""
 import os
 import sys
-from jep.schema import CompletionResponse, CompletionRequest, CompletionOption, SyntaxFormatType
 
 moduledir = os.path.dirname(__file__)
 
@@ -14,6 +13,7 @@ except ImportError:
 import logging
 import logging.config
 from jep.backend import Backend, FrontendListener
+from jep.schema import CompletionResponse, CompletionRequest, CompletionOption, SyntaxFormatType
 
 logging.config.dictConfig({
     'version': 1,
