@@ -57,11 +57,10 @@ class BackendListener:
 class Frontend(BackendListener):
     """Top level frontend class, once to be instantiated per editor plugin."""
 
-    def __init__(self, listeners=None, *, service_config_provider=None, provide_backend_connection=None, syntax_fileset=None):
+    def __init__(self, listeners=None, *, service_config_provider=None, provide_backend_connection=None):
         self.listeners = listeners or []
         self.service_config_provider = service_config_provider or ServiceConfigProvider()
         self.provide_backend_connection = provide_backend_connection or BackendConnection
-        self.syntax_fileset = syntax_fileset or SyntaxFileSet()
         self.connection_by_service_selector = collections.defaultdict(lambda: None)
 
     def get_connection(self, filename):
@@ -100,11 +99,6 @@ class Frontend(BackendListener):
         self.connection_by_service_selector[service_config.selector] = connection
         connection.connect()
         return connection
-
-    def on_static_syntax_list(self, format_, syntaxes, context):
-        for syntax in syntaxes:
-            _logger.debug("Received static syntax definition for file extensions: {}.".format(', '.join(syntax.fileExtensions)))
-            self.syntax_fileset.add_syntax_file(path, format_, syntax.fileExtensions)
 
 
 @enum.unique
