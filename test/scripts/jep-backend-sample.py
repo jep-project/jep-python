@@ -59,5 +59,5 @@ class Listener(FrontendListener):
 
 
 b = Backend([Listener()])
-b.register_static_syntax(os.path.join(moduledir, '../input/syntax/mcmake.tmLanguage'), SyntaxFormatType.textmate, '.mcmake')
+b.register_static_syntax('mcmake', os.path.join(moduledir, '../input/syntax/mcmake.tmLanguage'), SyntaxFormatType.textmate, '.mcmake')
 b.start()
