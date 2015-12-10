@@ -243,9 +243,9 @@ class BackendConnection():
         If the request class' token attribute is still ``None`` it is filled with a unique ID by this method. If it holds a value that value is used and the caller is
         responsible for uniqueness (in most general case at backend level).
 
-        :param request_message: The request message to be sent to backend. The underlying message class must have a ``token`` attribute.
+        :param message: The request message to be sent to backend. The underlying message class must have a ``token`` attribute.
         :param duration: Maximal period to wait for response.
-        :return: Response message object of ``None``.
+        :return: Response message object or ``None``.
         """
 
         # currently only one active request is possible:
