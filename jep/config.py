@@ -2,7 +2,6 @@
 import hashlib
 import re
 from os.path import splitext, abspath, exists, dirname, join, basename
-
 #: Data buffer length in bytes.
 import datetime
 
@@ -13,7 +12,8 @@ BUFFER_LENGTH = 65536
 TIMEOUT_SELECT_SEC = 0.5
 
 #: Timeout after last message was received.
-TIMEOUT_LAST_MESSAGE = datetime.timedelta(minutes=1)
+TIMEOUT_LAST_MESSAGE = datetime.timedelta(minutes=10, seconds=30)
+
 
 class ServiceConfig:
     """Represents configuration of a single JEP service."""
@@ -92,4 +92,3 @@ class ServiceConfigProvider:
     def _checksum(cls, string):
         """Computes a checksum over given string."""
         return hashlib.sha1(string.encode()).digest()
-
