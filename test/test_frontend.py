@@ -476,7 +476,7 @@ def test_backend_connected_disconnect_backend_shutdown_timeout(mock_os_module, m
 @mock.patch('jep.frontend.select')
 @mock.patch('jep.frontend.datetime')
 @mock.patch('jep.frontend.os')
-def test_backend_connected_receive_no_data_until_alive_timeout(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
+def test_backend_connected_receive_no_data_until_alive_timeout_and_reconnect(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
     # prepare no data ready for reception:
@@ -489,10 +489,10 @@ def test_backend_connected_receive_no_data_until_alive_timeout(mock_os_module, m
     connection.run(datetime.timedelta(seconds=1))
 
     assert mock_socket.close.call_count == 1
-    assert connection.state is State.Disconnected
+    assert connection.state is State.Connecting
     assert not connection._socket
-    assert not connection._process
-    assert not connection._process_output_reader
+    assert connection._process
+    assert connection._process_output_reader
 
 
 def iterate_first_and_then(first, then):

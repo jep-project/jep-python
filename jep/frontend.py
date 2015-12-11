@@ -194,11 +194,12 @@ class BackendConnection():
         self._state_timer_reset = datetime.datetime.now()
         self.state = State.Disconnecting
 
-    def reconnect(self, service_config):
+    def reconnect(self, service_config=None):
         """Reconnects to new service configuration."""
-        _logger.debug('Reconnecting due to changed service configuration.')
+        _logger.debug('Reconnecting.')
         self.disconnect()
-        self.service_config = service_config
+        if service_config:
+            self.service_config = service_config
         self._reconnect_expected = True
 
     def run(self, duration):
@@ -299,8 +300,8 @@ class BackendConnection():
             self._receive()
 
         if datetime.datetime.now() - self._state_timer_reset > TIMEOUT_LAST_MESSAGE:
-            _logger.debug('Backend did not sent any message for %.2f seconds, disconnecting.' % TIMEOUT_LAST_MESSAGE.total_seconds())
-            self.disconnect()
+            _logger.debug('Backend did not sent any message for %.2f seconds, reconnecting.' % TIMEOUT_LAST_MESSAGE.total_seconds())
+            self.reconnect()
 
     def _run_disconnecting(self, duration):
         self._read_backend_output()
