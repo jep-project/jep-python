@@ -38,7 +38,7 @@ def main():
         install_requires.append('enum34')
 
     setup(
-        name='jep',
+        name='jep-python',
         version='0.5.0',
         packages=find_packages(),
         install_requires=install_requires,
