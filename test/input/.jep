@@ -6,3 +6,6 @@ c-command
 
 fullname:
 fullname-command
+
+CMakeLists.txt,*.cmake:
+jep-cmake

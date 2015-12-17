@@ -31,6 +31,12 @@ def test_service_config_provider():
     sc = provider.provide_for('other-folder/fullname')
     assert sc.command == 'fullname-command'
 
+    sc = provider.provide_for('CMakeLists.txt')
+    assert sc.command == 'jep-cmake'
+
+    sc = provider.provide_for('other-folder/CMakeLists.txt')
+    assert sc.command == 'jep-cmake'
+
 
 def test_service_config_provider_failed_extension():
     provider = ServiceConfigProvider()

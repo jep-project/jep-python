@@ -20,14 +20,14 @@ class ServiceConfig:
 
     def __init__(self, config_file_path, patterns, command, checksum):
         self.config_file_path = abspath(config_file_path)
-        self.patterns = tuple(patterns)
+        self.patterns = set(patterns)
         self.command = command
         self.checksum = checksum
 
     @property
     def selector(self):
         """Key used during selection of the backend service to run for a certain file."""
-        return hash((self.config_file_path, self.patterns))
+        return hash((self.config_file_path, tuple(self.patterns)))
 
 
 class ServiceConfigProvider:
@@ -41,13 +41,17 @@ class ServiceConfigProvider:
         """Returns service configuration for given file name that is going to be edited."""
         lastdir = None
         curdir = dirname(abspath(edited_file_name))
-        search_pattern = cls._file_pattern(edited_file_name)
+
+        # look for extension pattern of full filename:
+        extension_pattern = cls._file_pattern(edited_file_name)
+        filename = basename(edited_file_name)
+        search_patterns = {extension_pattern, filename}
 
         while curdir != lastdir:
             config_file_path = join(curdir, config_file_name)
             if exists(config_file_path):
                 for config in cls._configurations(config_file_path):
-                    if search_pattern in config.patterns:
+                    if not search_patterns.isdisjoint(config.patterns):
                         return config
             lastdir = curdir
             curdir = dirname(curdir)
