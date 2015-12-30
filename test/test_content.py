@@ -1,6 +1,6 @@
 """Test of content synchronization of KEP backend."""
 from unittest import mock
-from jep.content import ContentMonitor, SynchronizationResult
+from jep.content import ContentMonitor, SynchronizationResult, NewlineMode
 
 
 def test_content_empty():
@@ -53,3 +53,19 @@ def test_out_of_sync():
     assert monitor[mock.sentinel.FILEPATH] == 'This is the string.'
     assert monitor.synchronize(mock.sentinel.FILEPATH, ' Really!', 0, -1) == SynchronizationResult.OutOfSync
     assert monitor[mock.sentinel.FILEPATH] == 'This is the string.'
+
+
+def test_newline_mode_detect():
+    assert NewlineMode.detect(None) == NewlineMode.Unknown
+    assert NewlineMode.detect('') == NewlineMode.Unknown
+    assert NewlineMode.detect('Hello') == NewlineMode.Unknown
+    assert NewlineMode.detect('Hello\n') == NewlineMode.N
+    assert NewlineMode.detect('\nHello') == NewlineMode.N
+    assert NewlineMode.detect('He\nllo') == NewlineMode.N
+    assert NewlineMode.detect('He\nllo\n') == NewlineMode.N
+    assert NewlineMode.detect('He\nllo\n ') == NewlineMode.N
+    assert NewlineMode.detect('Hello\r') == NewlineMode.R
+    assert NewlineMode.detect('Hello\r\n') == NewlineMode.RN
+    assert NewlineMode.detect('\rHello\n') == NewlineMode.R | NewlineMode.N
+    assert NewlineMode.detect('\r\nHello\n') == NewlineMode.RN | NewlineMode.N
+    assert NewlineMode.detect('\r\nHel\rlo\n') == NewlineMode.RN | NewlineMode.N | NewlineMode.R == NewlineMode.All

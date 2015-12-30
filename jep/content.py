@@ -14,6 +14,47 @@ class SynchronizationResult(enum.Enum):
     Updated = 2
 
 
+class NewlineMode:
+    """Representation of newlines in string as bit mask."""
+    Unknown = 0
+    #: '\n'
+    N = 0x01
+    #: '\r'
+    R = 0x02
+    #: '\r\n'
+    RN = 0x04
+    #: Mix of all known combinations.
+    All = N | R | RN
+
+    @classmethod
+    def detect(cls, text):
+        mode = cls.Unknown
+
+        if text:
+            chariter = iter(text)
+            rpending = False
+
+            try:
+                while mode < cls.All:
+                    c = next(chariter)
+                    if c == '\n':
+                        mode |= cls.N
+                    elif c == '\r':
+                        rpending = True
+                        c = next(chariter)
+                        rpending = False
+                        if c == '\n':
+                            mode |= cls.RN
+                        else:
+                            mode |= cls.R
+            except StopIteration:
+                # check if '\r' was last character in text and iteration stopped when testing for following '\n'
+                if rpending:
+                    mode |= cls.R
+
+        return mode
+
+
 class ContentMonitor:
     """Monitors the file contents based on synchronization requests from a frontend.
 
