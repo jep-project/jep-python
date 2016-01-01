@@ -42,7 +42,7 @@ class ServiceConfigProvider:
         lastdir = None
         curdir = dirname(abspath(edited_file_name))
 
-        # look for extension pattern of full filename:
+        # look for extension pattern or full filename:
         extension_pattern = cls._file_pattern(edited_file_name)
         filename = basename(edited_file_name)
         search_patterns = {extension_pattern, filename}
