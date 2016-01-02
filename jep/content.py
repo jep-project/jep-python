@@ -54,6 +54,23 @@ class NewlineMode:
 
         return mode
 
+    @classmethod
+    def open_newline_mode(cls, mode):
+        """Returns the open() newline mode that best corresponds to the given mode."""
+
+        if mode == cls.N or mode == cls.Unknown:
+            # universal, mapped to '\n':
+            return None
+
+        if mode == cls.R:
+            return '\r'
+
+        if mode == cls.RN:
+            return '\r\n'
+
+        # mixed, i.e. leave as is:
+        return ''
+
 
 class ContentMonitor:
     """Monitors the file contents based on synchronization requests from a frontend.
