@@ -69,3 +69,10 @@ def test_newline_mode_detect():
     assert NewlineMode.detect('\rHello\n') == NewlineMode.R | NewlineMode.N
     assert NewlineMode.detect('\r\nHello\n') == NewlineMode.RN | NewlineMode.N
     assert NewlineMode.detect('\r\nHel\rlo\n') == NewlineMode.RN | NewlineMode.N | NewlineMode.R == NewlineMode.All
+
+
+def test_newline_mode_open_mode():
+    assert NewlineMode.open_newline_mode(NewlineMode.N) is None
+    assert NewlineMode.open_newline_mode(NewlineMode.R) == '\r'
+    assert NewlineMode.open_newline_mode(NewlineMode.RN) == '\r\n'
+    assert NewlineMode.open_newline_mode(NewlineMode.All) == ''
