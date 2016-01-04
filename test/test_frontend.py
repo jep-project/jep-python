@@ -5,9 +5,9 @@ from unittest import mock
 import datetime
 import itertools
 import pytest
-from jep.config import TIMEOUT_LAST_MESSAGE
-from jep.frontend import Frontend, State, BackendConnection, TIMEOUT_BACKEND_STARTUP, TIMEOUT_BACKEND_SHUTDOWN
-from jep.schema import Shutdown, BackendAlive, CompletionResponse, CompletionRequest
+from jep_py.config import TIMEOUT_LAST_MESSAGE
+from jep_py.frontend import Frontend, State, BackendConnection, TIMEOUT_BACKEND_STARTUP, TIMEOUT_BACKEND_SHUTDOWN
+from jep_py.schema import Shutdown, BackendAlive, CompletionResponse, CompletionRequest
 from test.logconfig import configure_test_logger
 
 
@@ -236,10 +236,10 @@ def decorate_connection_state_dispatch(connection, delay_sec, mock_datetime_modu
     connection._dispatch = _dispatch
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connection_connect(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
     now = datetime.datetime.now()
 
@@ -284,10 +284,10 @@ def test_backend_connection_connect(mock_os_module, mock_datetime_module, mock_s
                                                                 mock.call(State.Connecting, State.Connected, connection)])
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connection_connect_no_port_announcement(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
     now = datetime.datetime.now()
     mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
@@ -317,10 +317,10 @@ def test_backend_connection_connect_no_port_announcement(mock_os_module, mock_da
     assert not connection._process_output_reader
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connection_connect_connection_none(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
     now = datetime.datetime.now()
     mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
@@ -348,10 +348,10 @@ def test_backend_connection_connect_connection_none(mock_os_module, mock_datetim
     assert not connection._process_output_reader
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connection_connect_connection_exception(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
     now = datetime.datetime.now()
     mock_async_reader, mock_process, mock_provide_async_reader, mock_service_config = prepare_connecting_mocks(mock_datetime_module, mock_socket_module,
@@ -396,10 +396,10 @@ def prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subpr
     return connection, mock_process, mock_serializer, mock_socket
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_disconnect_backend_shutdown_ok(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
@@ -418,10 +418,10 @@ def test_backend_connected_disconnect_backend_shutdown_ok(mock_os_module, mock_d
     assert not connection._process_output_reader
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_reconnect(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
@@ -446,10 +446,10 @@ def test_backend_connected_reconnect(mock_os_module, mock_datetime_module, mock_
     assert mock_subprocess_module.Popen.call_args[1]['cwd'] == path.abspath('somenewdir')
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_disconnect_backend_shutdown_timeout(mock_os_module, mock_datetime_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
@@ -471,11 +471,11 @@ def test_backend_connected_disconnect_backend_shutdown_timeout(mock_os_module, m
     assert not connection._process_output_reader
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.select')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.select')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_receive_no_data_until_alive_timeout_and_reconnect(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
@@ -499,11 +499,11 @@ def iterate_first_and_then(first, then):
     return itertools.chain([first], itertools.repeat(then))
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.select')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.select')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_receive_data(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
     connection.frontend = mock.MagicMock()
@@ -523,11 +523,11 @@ def test_backend_connected_receive_data(mock_os_module, mock_datetime_module, mo
     assert connection.frontend.on_backend_alive.called
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.select')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.select')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_receive_data_resets_alive_timeout(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
     connection.frontend = mock.MagicMock()
@@ -547,11 +547,11 @@ def test_backend_connected_receive_data_resets_alive_timeout(mock_os_module, moc
     assert connection.state is State.Connected
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.select')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.select')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_receive_data_none(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
@@ -565,11 +565,11 @@ def test_backend_connected_receive_data_none(mock_os_module, mock_datetime_modul
     assert connection.state is State.Connecting
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.select')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.select')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_receive_data_exception(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
@@ -589,11 +589,11 @@ def test_backend_connection_request_message_no_token_attribute():
         connection.request_message(Shutdown(), mock.sentinel.DURATION)
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.select')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.select')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_run_for_duration(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
 
@@ -608,11 +608,11 @@ def test_backend_connected_run_for_duration(mock_os_module, mock_datetime_module
     assert mock_datetime_module.datetime.now() == now + datetime.timedelta(seconds=1)
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.select')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.select')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_run_without_response_received(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
     connection.frontend = mock.MagicMock()
@@ -632,11 +632,11 @@ def test_backend_connected_run_without_response_received(mock_os_module, mock_da
     assert mock_datetime_module.datetime.now() == now + datetime.timedelta(seconds=1)
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.select')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.select')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_run_wit__other_response_received(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
     connection.frontend = mock.MagicMock()
@@ -658,11 +658,11 @@ def test_backend_connected_run_wit__other_response_received(mock_os_module, mock
     assert mock_datetime_module.datetime.now() == now + datetime.timedelta(seconds=1)
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.select')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.select')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_run_with_response_received(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
     connection.frontend = mock.MagicMock()
@@ -684,11 +684,11 @@ def test_backend_connected_run_with_response_received(mock_os_module, mock_datet
     assert mock_datetime_module.datetime.now() == now + datetime.timedelta(seconds=0.1)
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.select')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.select')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_request_message_without_response(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
     connection.frontend = mock.MagicMock()
@@ -711,11 +711,11 @@ def test_backend_connected_request_message_without_response(mock_os_module, mock
     assert mock_datetime_module.datetime.now() == now + datetime.timedelta(seconds=1)
 
 
-@mock.patch('jep.frontend.subprocess')
-@mock.patch('jep.frontend.socket')
-@mock.patch('jep.frontend.select')
-@mock.patch('jep.frontend.datetime')
-@mock.patch('jep.frontend.os')
+@mock.patch('jep_py.frontend.subprocess')
+@mock.patch('jep_py.frontend.socket')
+@mock.patch('jep_py.frontend.select')
+@mock.patch('jep_py.frontend.datetime')
+@mock.patch('jep_py.frontend.os')
 def test_backend_connected_request_message_with_response(mock_os_module, mock_datetime_module, mock_select_module, mock_socket_module, mock_subprocess_module):
     connection, mock_process, mock_serializer, mock_socket = prepare_connected_mocks(mock_datetime_module, mock_socket_module, mock_subprocess_module)
     connection.frontend = mock.MagicMock()

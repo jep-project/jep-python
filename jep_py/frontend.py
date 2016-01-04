@@ -11,11 +11,11 @@ import shlex
 import datetime
 import os
 import uuid
-from jep.async import AsynchronousFileReader
-from jep.config import ServiceConfigProvider, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
-from jep.protocol import MessageSerializer
-from jep.schema import Shutdown, TOKEN_ATTR_NAME
-from jep.syntax import SyntaxFileSet
+from jep_py.async import AsynchronousFileReader
+from jep_py.config import ServiceConfigProvider, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
+from jep_py.protocol import MessageSerializer
+from jep_py.schema import Shutdown, TOKEN_ATTR_NAME
+from jep_py.syntax import SyntaxFileSet
 
 _logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import os
 from unittest import mock
-from jep.schema import SyntaxFormatType
-from jep.syntax import SyntaxFileSet, SyntaxFile
+from jep_py.schema import SyntaxFormatType
+from jep_py.syntax import SyntaxFileSet, SyntaxFile
 
 
 def setup_function(function):

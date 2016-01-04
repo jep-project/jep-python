@@ -5,15 +5,15 @@ import sys
 moduledir = os.path.dirname(__file__)
 
 try:
-    import jep as jeptestimport
+    import jep_py as jeptestimport
 except ImportError:
     # not in path, do it now:
     sys.path.append(os.path.join(moduledir, "..", ".."))
 
 import logging
 import logging.config
-from jep.backend import Backend, FrontendListener
-from jep.schema import CompletionResponse, CompletionRequest, CompletionOption, SyntaxFormatType
+from jep_py.backend import Backend, FrontendListener
+from jep_py.schema import CompletionResponse, CompletionRequest, CompletionOption, SyntaxFormatType
 
 logging.config.dictConfig({
     'version': 1,

@@ -2,11 +2,11 @@
 from unittest import mock
 import datetime
 import pytest
-from jep.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendConnection, TIMEOUT_BACKEND_ALIVE, TIMEOUT_LAST_MESSAGE
-from jep.content import SynchronizationResult
-from jep.protocol import MessageSerializer
-from jep.schema import Shutdown, BackendAlive, CompletionRequest, ContentSync, StaticSyntaxList, StaticSyntax
-from jep.syntax import SyntaxFile
+from jep_py.backend import Backend, State, NoPortFoundError, PORT_RANGE, FrontendConnection, TIMEOUT_BACKEND_ALIVE, TIMEOUT_LAST_MESSAGE
+from jep_py.content import SynchronizationResult
+from jep_py.protocol import MessageSerializer
+from jep_py.schema import Shutdown, BackendAlive, CompletionRequest, ContentSync, StaticSyntaxList, StaticSyntax
+from jep_py.syntax import SyntaxFile
 from test.logconfig import configure_test_logger
 
 
@@ -20,7 +20,7 @@ def test_initial_state():
     assert backend.state is State.Stopped
 
 
-@mock.patch('jep.backend.socket')
+@mock.patch('jep_py.backend.socket')
 def test_find_server_port(mock_socket_mod):
     # deny binding to any port:
     mock_socket_mod.socket().bind = mock.MagicMock(side_effect=OSError)
@@ -48,8 +48,8 @@ def set_backend_state(backend, state, return_value=None):
     return _
 
 
-@mock.patch('jep.backend.socket')
-@mock.patch('jep.backend.select')
+@mock.patch('jep_py.backend.socket')
+@mock.patch('jep_py.backend.select')
 def test_bind_and_listen_and_accept_and_disconnect(mock_select_mod, mock_socket_mod, capsys):
     backend = Backend()
     server_socket = mock_socket_mod.socket()
@@ -113,7 +113,7 @@ def test_message_context():
     assert mock_clientsocket.send.call_count == 1
 
 
-@mock.patch('jep.backend.datetime')
+@mock.patch('jep_py.backend.datetime')
 def test_backend_alive_cycle(mock_datetime_mod):
     now = datetime.datetime.now()
     mock_datetime_mod.datetime.now = mock.MagicMock(side_effect=lambda: now)
@@ -149,7 +149,7 @@ def test_backend_alive_cycle(mock_datetime_mod):
     assert b'BackendAlive' in mock_clientsocket2.send.call_args[0][0]
 
 
-@mock.patch('jep.backend.datetime')
+@mock.patch('jep_py.backend.datetime')
 def test_frontend_timeout(mock_datetime_mod):
     now = datetime.datetime.now()
     mock_datetime_mod.datetime.now = mock.MagicMock(side_effect=lambda: now)

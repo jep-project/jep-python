@@ -2,8 +2,8 @@ from unittest import mock
 import umsgpack
 import pytest
 from test.logconfig import configure_test_logger
-from jep.protocol import MessageSerializer
-from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
+from jep_py.protocol import MessageSerializer
+from jep_py.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, CompletionRequest, CompletionResponse, CompletionOption, SemanticType, ProblemUpdate, Problem, \
     Severity, FileProblems, CompletionInvocation, StaticSyntaxRequest, SyntaxFormatType, StaticSyntaxList, StaticSyntax
 
 
@@ -25,7 +25,7 @@ def test_message_serializer_deserialize_chain():
     mock_packer = mock.MagicMock()
     mock_packer.load = mock.MagicMock(return_value=dict(_message=mock.sentinel.MESSAGE_NAME))
     buffer = bytes(b'bytes')
-    with mock.patch('jep.protocol.Message.class_by_name', lambda name: Shutdown) as mock_class_by_msgname:
+    with mock.patch('jep_py.protocol.Message.class_by_name', lambda name: Shutdown) as mock_class_by_msgname:
         serializer = MessageSerializer(mock_packer)
         assert isinstance(serializer.deserialize(buffer), Shutdown)
         assert mock_packer.load.called

@@ -2,7 +2,7 @@ from .logconfig import configure_test_logger
 import enum
 import inspect
 from unittest import mock
-from jep.serializer import Serializable, serialize_to_builtins, deserialize_from_builtins
+from jep_py.serializer import Serializable, serialize_to_builtins, deserialize_from_builtins
 
 
 def setup_function(function):

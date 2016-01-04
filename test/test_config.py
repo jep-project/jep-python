@@ -1,5 +1,5 @@
 import os
-from jep.config import ServiceConfigProvider, ServiceConfig
+from jep_py.config import ServiceConfigProvider, ServiceConfig
 from test.logconfig import configure_test_logger
 
 

@@ -1,6 +1,6 @@
 import logging
 import datetime
-from jep.frontend import Frontend, BackendListener, State
+from jep_py.frontend import Frontend, BackendListener, State
 from test.logconfig import configure_test_logger
 
 _logger = logging.getLogger('jep.frontend.sample')

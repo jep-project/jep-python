@@ -10,7 +10,7 @@ Implementing JEP based support for a custom language is easy. Simply derive one 
 messages and then run the backend with those listeners.
 
 ```python
-from jep.backend import Backend, FrontendListener
+from jep_py.backend import Backend, FrontendListener
 
 class Listener(FrontendListener):
     def on_completion_request(self, completion_request, context):
@@ -50,8 +50,8 @@ Here is an example shutting down the backend service upon reception of its first
 
 ```python
 import datetime
-from jep.frontend import Frontend, BackendListener, State
-from jep.schema import Shutdown
+from jep_py.frontend import Frontend, BackendListener, State
+from jep_py.schema import Shutdown
 
 class MyListener(BackendListener):
     def on_backend_alive(self, context):

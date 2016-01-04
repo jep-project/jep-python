@@ -1,4 +1,4 @@
-from jep.schema import Message, Shutdown, CompletionResponse
+from jep_py.schema import Message, Shutdown, CompletionResponse
 
 
 def test_message_class_by_name():

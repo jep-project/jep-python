@@ -2,8 +2,8 @@ import umsgpack
 
 import io
 import logging
-from jep.schema import Message
-from jep.serializer import serialize_to_builtins, deserialize_from_builtins
+from jep_py.schema import Message
+from jep_py.serializer import serialize_to_builtins, deserialize_from_builtins
 
 _logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import socket
 import time
-from jep.protocol import MessageSerializer
-from jep.schema import Shutdown
+from jep_py.protocol import MessageSerializer
+from jep_py.schema import Shutdown
 
 clientsocket = socket.create_connection(('localhost', 9001))
 

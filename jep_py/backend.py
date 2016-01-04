@@ -4,11 +4,11 @@ import enum
 import logging
 import socket
 import select
-from jep.config import TIMEOUT_SELECT_SEC, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
-from jep.content import ContentMonitor, SynchronizationResult
-from jep.protocol import MessageSerializer
-from jep.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, StaticSyntaxList, StaticSyntax
-from jep.syntax import SyntaxFileSet, SyntaxFile
+from jep_py.config import TIMEOUT_SELECT_SEC, BUFFER_LENGTH, TIMEOUT_LAST_MESSAGE
+from jep_py.content import ContentMonitor, SynchronizationResult
+from jep_py.protocol import MessageSerializer
+from jep_py.schema import Shutdown, BackendAlive, ContentSync, OutOfSync, StaticSyntaxList, StaticSyntax
+from jep_py.syntax import SyntaxFileSet, SyntaxFile
 
 _logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 """JEP message types."""
 import enum
-from jep.serializer import Serializable
+from jep_py.serializer import Serializable
 
 #: Name of token attribute for request/response messages.
 TOKEN_ATTR_NAME = 'token'

@@ -1,6 +1,6 @@
 """Test of content synchronization of KEP backend."""
 from unittest import mock
-from jep.content import ContentMonitor, SynchronizationResult, NewlineMode
+from jep_py.content import ContentMonitor, SynchronizationResult, NewlineMode
 
 
 def test_content_empty():
