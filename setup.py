@@ -38,20 +38,28 @@ def main():
         install_requires.append('enum34')
 
     setup(
-        name='jep-python',
-        version='0.5.0',
-        packages=find_packages(),
-        install_requires=install_requires,
-        tests_require=[
-            'pytest'
-        ],
-        cmdclass={'test': PyTestCommand},
-        url='https://github.com/jep-project/jep-python',
-        license='',
-        author='Mike Pagel',
-        author_email='mike@mpagel.de',
-        description='Python implementation of the Joint Editors Protocol, see http://joint-editors.org/.'
-    )
+            name='jep-python',
+            version='0.5.1',
+            packages=find_packages(),
+            install_requires=install_requires,
+            tests_require=[
+                'pytest'
+            ],
+            cmdclass={'test': PyTestCommand},
+            url='https://github.com/jep-project/jep-python',
+            license='',
+            author='Mike Pagel',
+            author_email='mike@mpagel.de',
+            description='Python implementation of the Joint Editors Protocol, see http://joint-editors.org/.',
+            classifiers=[
+                'Development Status :: 4 - Beta',
+                'Intended Audience :: Developers',
+                'Topic :: Software Development :: Libraries',
+                'License :: OSI Approved :: MIT License',
+                'Programming Language :: Python :: 3.3',
+                'Programming Language :: Python :: 3.4',
+                'Programming Language :: Python :: 3.5',
+            ], )
 
 
 if __name__ == '__main__':
