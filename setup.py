@@ -50,7 +50,7 @@ def main():
             license='',
             author='Mike Pagel',
             author_email='mike@mpagel.de',
-            description='Python implementation of the Joint Editors Protocol, see http://joint-editors.org/.',
+            description='Python implementation of the Joint Editors Protocol.',
             classifiers=[
                 'Development Status :: 4 - Beta',
                 'Intended Audience :: Developers',

@@ -1,11 +1,17 @@
 jep-python |Build Status|
 =========================
 
-This is the Python implementation of the JEP protocol, providing
+This is the Python implementation of the Joint Editors Protocol (JEP),
+see http://joint-editors.org/ for more information. jep-python is providing
 language authors with a frontend library for IDE/editor integration and
 a backend library for language support.
 
 This implementation is currently compatible with Python 3.3+.
+
+Look at these associated projects on productive use of the library:
+
+    * Frontend used in Sublime editor: https://github.com/jep-project/jep-sublime
+    * Backend used for improved CMake language support: https://github.com/jep-project/jep-cmake
 
 Backend support
 ---------------
