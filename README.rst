@@ -89,8 +89,8 @@ its first alive message:
 .. |Build Status| image:: https://travis-ci.org/jep-project/jep-python.svg?branch=master
     :target: https://travis-ci.org/jep-project/jep-python
 
-.. |PyPI Status| image:: https://badge.fury.io/py/jep-project.svg
-    :target: https://badge.fury.io/py/jep-project.svg
+.. |PyPI Status| image:: https://badge.fury.io/py/jep-python.svg
+    :target: https://badge.fury.io/py/jep-python
 
 .. |Coveralls Status| image:: https://coveralls.io/repos/moltob/jep-python/badge.png?branch=master
     :target: https://coveralls.io/r/moltob/jep-python?branch=master
