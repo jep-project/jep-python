@@ -8,7 +8,10 @@ install:
   - pip install virtualenv
   - virtualenv ~/jepvenv
   - source ~/jepvenv/bin/activate
+  - pip install coveralls
   - pip install -e .
   - pip list
 script:
-  - python setup.py test -a test
+  - python setup.py test -a "test --cov=jep_py"
+after_success:
+  - coveralls

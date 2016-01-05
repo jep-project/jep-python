@@ -1,8 +1,7 @@
-__pycache__/
 .cache/
 .idea/
-.c9/
 build/
 dist/
-jep.egg-info/
-.eggs/
+jep_python.egg-info/
+.coverage
+README.html

@@ -51,6 +51,7 @@ def main():
             author='Mike Pagel',
             author_email='mike@mpagel.de',
             description='Python implementation of the Joint Editors Protocol.',
+            keywords='jep dsl language editor',
             classifiers=[
                 'Development Status :: 4 - Beta',
                 'Intended Audience :: Developers',

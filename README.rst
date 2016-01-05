@@ -1,7 +1,7 @@
 jep-python
 ==========
 
-|Build Status|
+|Build Status| |Coveralls Status| |PyPI Status|
 
 This is the Python implementation of the Joint Editors Protocol (JEP),
 see http://joint-editors.org/ for more information. jep-python is providing
@@ -87,4 +87,10 @@ its first alive message:
         connection.run(datetime.timedelta(seconds=0.1))
 
 .. |Build Status| image:: https://travis-ci.org/jep-project/jep-python.svg?branch=master
-   :target: https://travis-ci.org/jep-project/jep-python
+    :target: https://travis-ci.org/jep-project/jep-python
+
+.. |PyPI Status| image:: https://badge.fury.io/py/jep-project.svg
+    :target: https://badge.fury.io/py/jep-project.svg
+
+.. |Coveralls Status| image:: https://coveralls.io/repos/moltob/jep-python/badge.png?branch=master
+    :target: https://coveralls.io/r/moltob/jep-python?branch=master
