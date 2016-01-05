@@ -39,7 +39,7 @@ def main():
 
     setup(
             name='jep-python',
-            version='0.5.3',
+            version='0.5.5',
             packages=find_packages(),
             install_requires=install_requires,
             tests_require=[

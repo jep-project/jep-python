@@ -1,5 +1,7 @@
-jep-python |Build Status|
-=========================
+jep-python
+==========
+
+|Build Status|
 
 This is the Python implementation of the Joint Editors Protocol (JEP),
 see http://joint-editors.org/ for more information. jep-python is providing
@@ -8,7 +10,7 @@ a backend library for language support.
 
 This implementation is currently compatible with Python 3.3+.
 
-Look at these associated projects on productive use of the library:
+Look at these associated projects for examples of productive use of the library:
 
 * Frontend used in Sublime editor: https://github.com/jep-project/jep-sublime
 * Backend used for improved CMake language support: https://github.com/jep-project/jep-cmake
