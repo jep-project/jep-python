@@ -9,7 +9,7 @@ install:
   - virtualenv ~/jepvenv
   - source ~/jepvenv/bin/activate
   - pip install pytest-cov coveralls
-  - pip install -e .
+  - pip install .
   - pip list
 script:
   - python setup.py test -a "test --cov=jep_py"
