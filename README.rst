@@ -92,5 +92,5 @@ its first alive message:
 .. |PyPI Status| image:: https://badge.fury.io/py/jep-python.svg
     :target: https://badge.fury.io/py/jep-python
 
-.. |Coveralls Status| image:: https://coveralls.io/repos/moltob/jep-python/badge.png?branch=master
-    :target: https://coveralls.io/r/moltob/jep-python?branch=master
+.. |Coveralls Status| image:: https://coveralls.io/repos/jep-project/jep-python/badge.svg?branch=master&service=github
+    :target: https://coveralls.io/github/jep-project/jep-python?branch=master
