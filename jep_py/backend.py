@@ -1,4 +1,4 @@
-"""Framework independent PEP backend implementation."""
+"""Framework independent JEP backend implementation."""
 import datetime
 import enum
 import logging
